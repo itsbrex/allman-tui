@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Local lilac store (per-user message data, has its own git history)
+.lilac/
+
+# Claude Code local settings
+.claude/
