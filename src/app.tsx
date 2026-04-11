@@ -1,3 +1,4 @@
+import { watch } from "node:fs";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import TextInput from "ink-text-input";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -163,12 +164,52 @@ export function App({ account }: Props) {
   // (re-created on every render) reload/showToast callbacks.
   const reloadRef = useRef(reload);
   const showToastRef = useRef(showToast);
+  const refreshAuthRef = useRef(refreshAccountAuth);
   useEffect(() => {
     reloadRef.current = reload;
   }, [reload]);
   useEffect(() => {
     showToastRef.current = showToast;
   }, [showToast]);
+  useEffect(() => {
+    refreshAuthRef.current = refreshAccountAuth;
+  }, [refreshAccountAuth]);
+
+  // ----- Filesystem watch -----
+  // Catches out-of-band writes to the store — e.g. the user runs `lilac sync`
+  // or `lilac send` from another terminal while the TUI is open. Listen events
+  // and our own sync handlers already cover the in-process paths; this just
+  // closes the gap for external CLI invocations. Debounce coalesces bursts
+  // (e.g. a sync writing many messages in quick succession) into a single
+  // reload, and overlaps harmlessly with the explicit reload calls elsewhere.
+  useEffect(() => {
+    let debounceT: ReturnType<typeof setTimeout> | null = null;
+    let watcher: ReturnType<typeof watch> | null = null;
+    try {
+      watcher = watch(account.dir, { recursive: true }, () => {
+        if (debounceT) clearTimeout(debounceT);
+        debounceT = setTimeout(() => {
+          debounceT = null;
+          reloadRef.current();
+          refreshAuthRef.current();
+        }, 250);
+      });
+      watcher.on("error", () => {
+        // swallow — fs.watch can be flaky on some platforms; the listen
+        // subprocess + manual `R` are the safety net.
+      });
+    } catch {
+      // ignore — recursive watch may not be supported (linux without inotify, etc.)
+    }
+    return () => {
+      if (debounceT) clearTimeout(debounceT);
+      try {
+        watcher?.close();
+      } catch {
+        // ignore
+      }
+    };
+  }, [account.dir]);
 
   // ----- Listen subprocess -----
   // Opt-out via LILAC_TUI_LISTEN=0 (or =false). Enabled by default so the TUI
