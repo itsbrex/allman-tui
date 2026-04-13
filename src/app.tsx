@@ -156,6 +156,12 @@ export function App({ account }: Props) {
     setLastMessages(lm);
     if (selectedConvId) {
       setMessages(loadMessages(account.dir, selectedConvId));
+      // Keep cursor tracking the selected conversation after re-sort.
+      // Without this, sending a message (which bumps lastActivityAt → index 0)
+      // leaves cursorIdx at the old position, and the auto-preview effect
+      // overwrites selectedConvId with whatever now sits at that index.
+      const idx = next.findIndex((c) => c.convId === selectedConvId);
+      if (idx >= 0) setCursorIdx(idx);
     }
   }, [account.dir, selectedConvId]);
 
