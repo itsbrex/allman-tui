@@ -34,12 +34,15 @@ type Props = {
 };
 
 const HINTS: Record<Mode, string> = {
-  browse: "j/k navigate · ↵ open · i compose · / search · n new · r sync · : cmd · ? help · q quit",
+  browse:
+    "j/k navigate · ↵ open · i compose · t template · T templates · / search · n new · r sync · : cmd · ? help · q quit",
   compose: "↵ send · Esc cancel",
   search: "type to filter · ↵ select first · Esc clear",
   new: "type a name · ↵ select · Esc cancel",
   command: "type a command · ↵ run · Esc cancel",
   help: "Esc to close",
+  templatePick: "j/k navigate · ↵ insert into composer · T manage · Esc cancel",
+  templateManage: "j/k navigate · n new · e edit · d delete · Esc close",
 };
 
 export function StatusBar({

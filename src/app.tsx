@@ -7,6 +7,8 @@ import { Help } from "./components/Help.tsx";
 import { NewConversation } from "./components/NewConversation.tsx";
 import { Sidebar } from "./components/Sidebar.tsx";
 import { StatusBar, type SyncActivity } from "./components/StatusBar.tsx";
+import { TemplateManager } from "./components/TemplateManager.tsx";
+import { TemplatePicker } from "./components/TemplatePicker.tsx";
 import { Thread } from "./components/Thread.tsx";
 import {
   type ListenHandle,
@@ -21,9 +23,18 @@ import {
   syncConversation,
   syncInbox,
 } from "./lib/lilac.ts";
+import { loadTemplates, saveTemplates, type Template } from "./lib/templates.ts";
 import type { Account, Conversation, ListenEvent, Message, SearchResult } from "./lib/types.ts";
 
-export type Mode = "browse" | "compose" | "search" | "new" | "command" | "help";
+export type Mode =
+  | "browse"
+  | "compose"
+  | "search"
+  | "new"
+  | "command"
+  | "help"
+  | "templatePick"
+  | "templateManage";
 
 type Props = { account: Account };
 
@@ -90,6 +101,19 @@ export function App({ account }: Props) {
 
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Quick-reply templates. Stored in ~/.config/lilac-tui/templates.json —
+  // TUI-local, not in the lilac store, because templates are UX metadata
+  // rather than LinkedIn state.
+  const [templates, setTemplates] = useState<Template[]>(() => loadTemplates());
+  const updateTemplates = useCallback((next: Template[]) => {
+    setTemplates(next);
+    try {
+      saveTemplates(next);
+    } catch (e) {
+      setToast(`failed to save templates: ${e instanceof Error ? e.message : e}`);
+    }
+  }, []);
 
   // Track listen freshness so the status bar can show a meaningful "live" dot.
   // `lastBeatAt` ticks on every heartbeat, message, or read receipt — anything
@@ -563,6 +587,11 @@ export function App({ account }: Props) {
         }
         return;
       }
+      if (mode === "templatePick" || mode === "templateManage") {
+        // Both overlays own their own keybindings via the embedded useInput.
+        // We only need to make sure App-level keys don't fire underneath.
+        return;
+      }
 
       // browse mode
       if (input === "q") {
@@ -584,6 +613,20 @@ export function App({ account }: Props) {
       }
       if (input === "i") {
         if (selectedConvId) setMode("compose");
+        return;
+      }
+      if (input === "t") {
+        // Quick-reply picker. Requires a selected conversation so the
+        // rendered preview can substitute {firstName} etc.
+        if (!selectedConvId) {
+          showToast("select a conversation first");
+          return;
+        }
+        setMode("templatePick");
+        return;
+      }
+      if (input === "T") {
+        setMode("templateManage");
         return;
       }
       if (input === ":") {
@@ -636,7 +679,7 @@ export function App({ account }: Props) {
         return;
       }
     },
-    { isActive: mode !== "new" } // NewConversation handles its own input
+    { isActive: mode !== "new" && mode !== "templatePick" && mode !== "templateManage" }
   );
 
   // ----- Command palette runner -----
@@ -690,6 +733,10 @@ export function App({ account }: Props) {
         setMode("help");
         return;
       }
+      if (cmd === "templates" || cmd === "t") {
+        setMode("templateManage");
+        return;
+      }
       showToast(`unknown command: :${cmd}`);
     },
     [reload, showToast, doSyncInbox, doSyncOne, exit, selectedConvId, conversations]
@@ -734,6 +781,63 @@ export function App({ account }: Props) {
           height={rows - statusHeight}
           onCancel={() => setMode("browse")}
           onPick={onPickNew}
+        />
+        <StatusBar
+          mode={mode}
+          accountSlug={account.slug}
+          totalConvs={conversations.length}
+          unreadConvs={conversations.filter((c) => c.unreadCount > 0).length}
+          listenStatus={listenStatus}
+          lastBeatAt={lastBeatAt}
+          lastSyncAt={lastSyncAt}
+          syncActivity={syncActivity}
+          toast={toast}
+          width={cols}
+        />
+      </Box>
+    );
+  }
+
+  if (mode === "templatePick") {
+    return (
+      <Box flexDirection="column" width={cols} height={rows}>
+        <TemplatePicker
+          templates={templates}
+          conv={conv}
+          width={cols}
+          height={rows - statusHeight}
+          onCancel={() => setMode("browse")}
+          onManage={() => setMode("templateManage")}
+          onPick={(renderedBody) => {
+            setComposeText(renderedBody);
+            setMode("compose");
+          }}
+        />
+        <StatusBar
+          mode={mode}
+          accountSlug={account.slug}
+          totalConvs={conversations.length}
+          unreadConvs={conversations.filter((c) => c.unreadCount > 0).length}
+          listenStatus={listenStatus}
+          lastBeatAt={lastBeatAt}
+          lastSyncAt={lastSyncAt}
+          syncActivity={syncActivity}
+          toast={toast}
+          width={cols}
+        />
+      </Box>
+    );
+  }
+
+  if (mode === "templateManage") {
+    return (
+      <Box flexDirection="column" width={cols} height={rows}>
+        <TemplateManager
+          templates={templates}
+          width={cols}
+          height={rows - statusHeight}
+          onClose={() => setMode("browse")}
+          onChange={updateTemplates}
         />
         <StatusBar
           mode={mode}
