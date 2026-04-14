@@ -2,6 +2,19 @@ import { Box, Text } from "ink";
 import type { Mode } from "../app.tsx";
 import { relativeTime } from "../lib/format.ts";
 
+// The full keybinding reference lives in the `?` help overlay. We keep the
+// status bar to a single line so the body gets as much real estate as
+// possible. In modes where the control surface is unusual (compose, search,
+// command) we still surface the essentials inline next to the mode tag.
+const MODE_HINT: Partial<Record<Mode, string>> = {
+  compose: "↵ send · Esc cancel",
+  search: "↵ select first · Esc clear",
+  command: "↵ run · Esc cancel",
+  new: "↵ select · Esc cancel",
+  templatePick: "↵ insert · Esc cancel",
+  templateManage: "n new · e edit · d delete · Esc close",
+};
+
 /**
  * Live sync activity reported through the streaming `lilac sync --json` channel.
  * `null` means nothing is syncing right now.
@@ -31,18 +44,6 @@ type Props = {
   syncActivity: SyncActivity | null;
   toast: string | null;
   width: number;
-};
-
-const HINTS: Record<Mode, string> = {
-  browse:
-    "j/k navigate · ↵ open · i compose · t template · T templates · / search · n new · r sync · : cmd · ? help · q quit",
-  compose: "↵ send · Esc cancel",
-  search: "type to filter · ↵ select first · Esc clear",
-  new: "type a name · ↵ select · Esc cancel",
-  command: "type a command · ↵ run · Esc cancel",
-  help: "Esc to close",
-  templatePick: "j/k navigate · ↵ insert into composer · T manage · Esc cancel",
-  templateManage: "j/k navigate · n new · e edit · d delete · Esc close",
 };
 
 export function StatusBar({
@@ -76,63 +77,69 @@ export function StatusBar({
 
   const liveLabel = live ? "live" : listenStatus === "connected" ? "stale" : listenStatus;
 
+  const hint = MODE_HINT[mode];
+
   return (
-    <Box flexDirection="column" width={width}>
-      <Box width={width} paddingX={1}>
-        <Text color="magentaBright" bold>
-          lilac
-        </Text>
-        <Text dimColor> · </Text>
-        <Text>{accountSlug}</Text>
-        <Text dimColor> · </Text>
-        <Text color={dot.color}>{dot.glyph}</Text>
-        <Text dimColor> {liveLabel}</Text>
-        <Text dimColor> · </Text>
-        <Text>{totalConvs}</Text>
-        <Text dimColor> convs</Text>
-        {unreadConvs > 0 ? (
-          <>
-            <Text dimColor> · </Text>
-            <Text color="magentaBright" bold>
-              {unreadConvs} unread
-            </Text>
-          </>
-        ) : null}
-        {syncActivity ? (
-          <>
-            <Text dimColor> · </Text>
-            <Text color="yellowBright">⟳ </Text>
-            <Text color="yellowBright">
-              {syncActivity.scope === "inbox"
-                ? "syncing inbox"
-                : `backfilling ${syncActivity.label}`}
-            </Text>
-            {syncActivity.scope === "inbox" && syncActivity.conversationsSeen !== undefined ? (
-              <Text
-                dimColor
-              >{` ${syncActivity.conversationsSeen}c/${syncActivity.messagesFetched}m`}</Text>
-            ) : (
-              <Text dimColor>{` ${syncActivity.messagesFetched}m`}</Text>
-            )}
-          </>
-        ) : lastSyncAt ? (
-          <>
-            <Text dimColor> · </Text>
-            <Text dimColor>synced {relativeTime(lastSyncAt) || "now"} ago</Text>
-          </>
-        ) : null}
-        {toast ? (
-          <>
-            <Text dimColor> · </Text>
-            <Text color="cyanBright">{toast}</Text>
-          </>
-        ) : null}
-        <Box flexGrow={1} />
-        <Text dimColor>[{mode}]</Text>
-      </Box>
-      <Box width={width} paddingX={1}>
-        <Text dimColor>{HINTS[mode]}</Text>
-      </Box>
+    <Box width={width} paddingX={1}>
+      <Text color="magentaBright" bold>
+        lilac
+      </Text>
+      <Text dimColor> · </Text>
+      <Text>{accountSlug}</Text>
+      <Text dimColor> · </Text>
+      <Text color={dot.color}>{dot.glyph}</Text>
+      <Text dimColor> {liveLabel}</Text>
+      <Text dimColor> · </Text>
+      <Text>{totalConvs}</Text>
+      <Text dimColor> convs</Text>
+      {unreadConvs > 0 ? (
+        <>
+          <Text dimColor> · </Text>
+          <Text color="magentaBright" bold>
+            {unreadConvs} unread
+          </Text>
+        </>
+      ) : null}
+      {syncActivity ? (
+        <>
+          <Text dimColor> · </Text>
+          <Text color="yellowBright">⟳ </Text>
+          <Text color="yellowBright">
+            {syncActivity.scope === "inbox" ? "syncing inbox" : `backfilling ${syncActivity.label}`}
+          </Text>
+          {syncActivity.scope === "inbox" && syncActivity.conversationsSeen !== undefined ? (
+            <Text
+              dimColor
+            >{` ${syncActivity.conversationsSeen}c/${syncActivity.messagesFetched}m`}</Text>
+          ) : (
+            <Text dimColor>{` ${syncActivity.messagesFetched}m`}</Text>
+          )}
+        </>
+      ) : lastSyncAt ? (
+        <>
+          <Text dimColor> · </Text>
+          <Text dimColor>synced {relativeTime(lastSyncAt) || "now"} ago</Text>
+        </>
+      ) : null}
+      {toast ? (
+        <>
+          <Text dimColor> · </Text>
+          <Text color="cyanBright">{toast}</Text>
+        </>
+      ) : null}
+      <Box flexGrow={1} />
+      {hint ? (
+        <>
+          <Text dimColor>{hint}</Text>
+          <Text dimColor> · </Text>
+        </>
+      ) : (
+        <>
+          <Text dimColor>? help</Text>
+          <Text dimColor> · </Text>
+        </>
+      )}
+      <Text dimColor>[{mode}]</Text>
     </Box>
   );
 }

@@ -745,7 +745,7 @@ export function App({ account }: Props) {
   // ----- Layout -----
   const sidebarWidth = Math.max(28, Math.min(42, Math.floor(cols * 0.32)));
   const threadWidth = cols - sidebarWidth - 1; // 1 col divider
-  const statusHeight = 2;
+  const statusHeight = 1;
   const composerHeight = 1;
   const dividerHeight = 1;
   const bodyHeight = Math.max(8, rows - statusHeight - composerHeight - dividerHeight - 1);
