@@ -4,21 +4,21 @@ A re-imagined LinkedIn messenger inbox, in your terminal. A thin terminal
 front-end over the standalone `lilac` binary and its on-disk message store.
 
 ```
-┌─ lilac · mockuser ──────────┬─────────────────────────────────────────────┐
-│ / search                     │ Chris Natale  @chrismnatale                 │
-│ ──────────────────────────── │ Principal AI Engineer | Designing …         │
-│ ▸ ● Chris Natale         3d  │                                             │
-│   you: Hey Chris! I sent…    │ ─── Apr 3 ───                               │
-│                              │ Chris  3:46p                                │
-│   ● Santiago Mari SMG    4d  │   Submitted                                 │
-│   you: Hi Santiago, a fellow…│                                             │
+┌─ lilac · your-account ──────────┬─────────────────────────────────────────────┐
+│ / search                     │ Jamie Rivera  @jamie-rivera                 │
+│ ──────────────────────────── │ Senior Engineer | Building …         │
+│ ▸ ● Jamie Rivera         3d  │                                             │
+│   you: Hey Jamie! I sent…    │ ─── Apr 3 ───                               │
+│                              │ Jamie  3:46p                                │
+│   ● Taylor Osei    4d  │   Submitted                                 │
+│   you: Hi Taylor, a fellow…│                                             │
 │                              │ ─── Apr 7 ───                               │
-│   ○ Erik Benjaminson     1w  │ you  4:28p                                  │
-│   you: Erik, thanks for…     │   Hey Chris! I sent a message to John…      │
+│   ○ Morgan Patel     1w  │ you  4:28p                                  │
+│   you: Morgan, thanks for…     │   Hey Jamie! I sent a message to John…      │
 │   …                          │                                             │
 ├──────────────────────────────┴─────────────────────────────────────────────┤
-│ ▶ Reply to Chris…   (press i to compose)                                   │
-│ lilac · mockuser · ● connected · 292 convs · 4 unread             [browse]│
+│ ▶ Reply to Jamie…   (press i to compose)                                   │
+│ lilac · your-account · ● connected · 292 convs · 4 unread             [browse]│
 │ j/k navigate · ↵ open · i compose · / search · n new · r sync · ? help     │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
