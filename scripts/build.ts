@@ -47,7 +47,8 @@ try {
   // ink lazily pulls in `react-devtools-core` when `process.env.DEV === 'true'`.
   // Defining DEV=false dead-code-eliminates that branch so the bundler never
   // tries to follow the import.
-  await $`bun build --compile --minify --define process.env.DEV='"false"' ${ENTRY} --outfile ${OUT}`;
+  const targetArgs = process.env.BUN_TARGET ? ["--target", process.env.BUN_TARGET] : [];
+  await $`bun build --compile --minify ${targetArgs} --define process.env.DEV='"false"' ${ENTRY} --outfile ${OUT}`;
   console.log(`build: ${OUT} ready`);
 } catch (err) {
   console.error("build: compile failed", err);

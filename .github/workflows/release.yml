@@ -1,0 +1,84 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - { arch: x64,   bun: bun-linux-x64 }
+          - { arch: arm64, bun: bun-linux-arm64 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Download matching lilac binary from lilac-cli release
+        env:
+          GH_TOKEN: ${{ secrets.LILAC_CLI_TOKEN || secrets.GITHUB_TOKEN }}
+          LILAC_CLI_VERSION: ${{ vars.LILAC_CLI_VERSION || 'latest' }}
+        run: |
+          mkdir -p .bin
+          if [ "$LILAC_CLI_VERSION" = "latest" ]; then
+            gh release download --repo tarkaai/lilac-cli \
+              --pattern "lilac-linux-${{ matrix.target.arch }}" \
+              --dir .bin
+          else
+            gh release download "$LILAC_CLI_VERSION" --repo tarkaai/lilac-cli \
+              --pattern "lilac-linux-${{ matrix.target.arch }}" \
+              --dir .bin
+          fi
+          mv ".bin/lilac-linux-${{ matrix.target.arch }}" .bin/lilac
+          chmod +x .bin/lilac
+
+      - name: Build TUI binary
+        env:
+          LILAC_BIN: ${{ github.workspace }}/.bin/lilac
+          BUN_TARGET: ${{ matrix.target.bun }}
+        run: bun scripts/build.ts
+
+      - name: Rename output with arch suffix and checksum
+        run: |
+          cd dist
+          mv lilac-tui lilac-tui-linux-${{ matrix.target.arch }}
+          sha256sum lilac-tui-linux-${{ matrix.target.arch }} > lilac-tui-linux-${{ matrix.target.arch }}.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lilac-tui-linux-${{ matrix.target.arch }}
+          path: |
+            dist/lilac-tui-linux-${{ matrix.target.arch }}
+            dist/lilac-tui-linux-${{ matrix.target.arch }}.sha256
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            dist/*

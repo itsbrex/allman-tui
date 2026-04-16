@@ -23,6 +23,17 @@ front-end over the standalone `lilac` binary and its on-disk message store.
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
+## Install
+
+### From GitHub Releases (Linux, x64 and arm64)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tarkaai/lilac-tui/main/install.sh | bash
+```
+
+Binaries include the `lilac` CLI embedded inside — no separate install required.
+See the [releases page](https://github.com/tarkaai/lilac-tui/releases) for direct downloads.
+
 ## Run
 
 ```bash
