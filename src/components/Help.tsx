@@ -16,6 +16,8 @@ const ROWS: [string, string][] = [
   ["/", "search conversation list"],
   ["n", "start a new conversation"],
   [":", "command palette  ( :sync, :sync <slug>, :reload, :templates, :quit )"],
+  ["o", "open contact's profile in browser"],
+  ["O", "open thread in LinkedIn messenger"],
   ["r", "sync (pull new messages from LinkedIn)"],
   ["R", "full re-sync (upsert all — fixes reactions, stale data)"],
   ["PgUp / PgDn", "scroll thread"],

@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { watch } from "node:fs";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import TextInput from "ink-text-input";
@@ -39,6 +40,18 @@ export type Mode =
   | "templateManage"
   | "messageSelect"
   | "reactionPick";
+
+function openUrl(url: string): void {
+  try {
+    // macOS
+    execSync(`open ${JSON.stringify(url)}`, { stdio: "ignore" });
+  } catch {
+    // Fallback: try xdg-open (Linux)
+    try {
+      execSync(`xdg-open ${JSON.stringify(url)}`, { stdio: "ignore" });
+    } catch { /* silently fail */ }
+  }
+}
 
 type Props = { account: Account };
 
@@ -745,6 +758,26 @@ export function App({ account }: Props) {
         // Full re-sync: bypass knownNewestAt dedup so all fetched messages
         // are upserted. Heals stale reactions, parser fixes, etc.
         void doSyncInbox({ resync: true });
+        return;
+      }
+      if (input === "o") {
+        // Open the contact's LinkedIn profile in the browser.
+        if (conv?.slug) {
+          openUrl(`https://www.linkedin.com/in/${conv.slug}/`);
+          showToast(`opened ${conv.slug}'s profile`);
+        } else {
+          showToast("no profile slug available");
+        }
+        return;
+      }
+      if (input === "O") {
+        // Open the LinkedIn messenger thread in the browser.
+        if (selectedConvId) {
+          openUrl(`https://www.linkedin.com/messaging/thread/${selectedConvId}/`);
+          showToast("opened thread in LinkedIn");
+        } else {
+          showToast("no conversation selected");
+        }
         return;
       }
       if (input === "g") {
