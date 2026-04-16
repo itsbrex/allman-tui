@@ -286,7 +286,11 @@ export function Thread({
           <Text bold color={accent}>
             {conversation.name}
           </Text>
-          {conversation.slug ? <Text dimColor> @{conversation.slug}</Text> : null}
+          {conversation.slug ? (
+            <Text dimColor>
+              {` \x1b]8;;https://www.linkedin.com/in/${conversation.slug}/\x07@${conversation.slug}\x1b]8;;\x07`}
+            </Text>
+          ) : null}
           {conversation.unreadCount > 0 ? (
             <Text color="magentaBright" bold>
               {"  "}● {conversation.unreadCount} new

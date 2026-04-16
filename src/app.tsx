@@ -49,7 +49,9 @@ function openUrl(url: string): void {
     // Fallback: try xdg-open (Linux)
     try {
       execSync(`xdg-open ${JSON.stringify(url)}`, { stdio: "ignore" });
-    } catch { /* silently fail */ }
+    } catch {
+      /* silently fail */
+    }
   }
 }
 
@@ -308,7 +310,9 @@ export function App({ account }: Props) {
   // Streaming sync — subscribes to NDJSON progress events from `lilac sync --json`
   // and threads them through into the status bar so the user sees live counts.
   const doSyncInbox = useCallback(
-    async (opts: { from?: string; to?: string; limit?: number; quiet?: boolean; resync?: boolean } = {}) => {
+    async (
+      opts: { from?: string; to?: string; limit?: number; quiet?: boolean; resync?: boolean } = {}
+    ) => {
       if (syncActivity) return;
       const slug = account.slug;
       const startActivity: SyncActivity = {

@@ -35,9 +35,7 @@ function runLogin(binPath: string, storePath: string, reason: string): boolean {
   // Hand stdio to the lilac CLI so its native login flow (browser auth,
   // prompts, etc.) can run unmodified. Ink hasn't been mounted yet so the
   // terminal is in cooked mode and the CLI gets a clean tty.
-  process.stdout.write(
-    `\n` + `  Welcome to lilac-tui.\n` + `  ${reason}\n` + `  (Press Ctrl-C to cancel.)\n` + `\n`
-  );
+  process.stdout.write(`\n  Welcome to lilac-tui.\n  ${reason}\n  (Press Ctrl-C to cancel.)\n\n`);
   const result = spawnSync(binPath, ["--store", storePath, "login"], {
     stdio: "inherit",
   });
