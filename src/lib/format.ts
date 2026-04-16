@@ -6,8 +6,10 @@ export function relativeTime(iso: string | number | null | undefined): string {
   if (Number.isNaN(t)) return "";
   const diff = Date.now() - t;
   if (diff < 0) return "now";
-  const m = Math.floor(diff / 60_000);
-  if (m < 1) return "now";
+  const s = Math.floor(diff / 1000);
+  if (s < 3) return "now";
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
   if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h`;

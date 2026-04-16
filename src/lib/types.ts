@@ -33,10 +33,38 @@ export type Reaction = {
   hasUserReacted: boolean;
 };
 
+export type AttachmentType =
+  | "image"
+  | "video"
+  | "audio"
+  | "voice"
+  | "file"
+  | "gif"
+  | "link_preview"
+  | "post_share"
+  | "forwarded"
+  | "replied"
+  | "unavailable"
+  | "away_message"
+  | "other";
+
 export type Attachment = {
-  type?: string;
+  type?: AttachmentType | string;
   url?: string;
   name?: string;
+  size?: number;
+  mimeType?: string;
+  previewUrl?: string;
+  width?: number;
+  height?: number;
+  durationMs?: number;
+  title?: string;
+  description?: string;
+  /** Commentary on a shared post, body of a forwarded msg, snippet of a reply target. */
+  originalText?: string;
+  /** Author of the shared/forwarded/replied source. */
+  authorName?: string;
+  raw?: unknown;
   [k: string]: unknown;
 };
 

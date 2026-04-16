@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Composer } from "./components/Composer.tsx";
 import { Help } from "./components/Help.tsx";
 import { NewConversation } from "./components/NewConversation.tsx";
+import { ReactionPicker } from "./components/ReactionPicker.tsx";
 import { Sidebar } from "./components/Sidebar.tsx";
 import { StatusBar, type SyncActivity } from "./components/StatusBar.tsx";
 import { TemplateManager } from "./components/TemplateManager.tsx";
@@ -15,6 +16,7 @@ import {
   loadConversations,
   loadLastMessage,
   loadMessages,
+  reactToMessage,
   readAccountAuth,
   resolveSlugToConvId,
   type SyncEvent,
@@ -34,7 +36,9 @@ export type Mode =
   | "command"
   | "help"
   | "templatePick"
-  | "templateManage";
+  | "templateManage"
+  | "messageSelect"
+  | "reactionPick";
 
 type Props = { account: Account };
 
@@ -80,6 +84,10 @@ export function App({ account }: Props) {
   const [composeText, setComposeText] = useState("");
   const [commandText, setCommandText] = useState("");
   const [sending, setSending] = useState(false);
+  // Index into `messages` for the react flow's message cursor. Null outside
+  // the messageSelect/reactionPick modes.
+  const [messageCursorIdx, setMessageCursorIdx] = useState<number | null>(null);
+  const [reacting, setReacting] = useState(false);
   // Live sync activity. Multi-account aware: keyed by account slug so future
   // multi-account UIs can show one in the foreground while others run in the
   // background. The current single-account TUI just reads activityByAccount[account.slug].
@@ -132,10 +140,12 @@ export function App({ account }: Props) {
     if (auth?.lastSyncAt) setLastSyncAt(auth.lastSyncAt);
   }, [account.dir]);
 
-  // Tick once a minute so the "synced 5m ago" line keeps moving without a poll.
+  // Tick every second so sub-minute relative times ("5s", "30s") progress
+  // smoothly in the status bar. Ink re-renders are cheap and only the
+  // StatusBar depends on this, so the cost is negligible.
   const [, setNow] = useState(Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -285,7 +295,7 @@ export function App({ account }: Props) {
   // Streaming sync — subscribes to NDJSON progress events from `lilac sync --json`
   // and threads them through into the status bar so the user sees live counts.
   const doSyncInbox = useCallback(
-    async (opts: { from?: string; to?: string; limit?: number; quiet?: boolean } = {}) => {
+    async (opts: { from?: string; to?: string; limit?: number; quiet?: boolean; resync?: boolean } = {}) => {
       if (syncActivity) return;
       const slug = account.slug;
       const startActivity: SyncActivity = {
@@ -307,6 +317,7 @@ export function App({ account }: Props) {
           from: opts.from,
           to: opts.to,
           limit: opts.limit,
+          resync: opts.resync,
           onEvent: (ev: SyncEvent) => {
             if (ev.event === "sync.conversation") {
               setSyncActivity(slug, {
@@ -395,39 +406,29 @@ export function App({ account }: Props) {
     [account.slug, refreshAccountAuth, setSyncActivity, showToast]
   );
 
-  // ----- Auto-sync on first run -----
-  // Fresh accounts have AUTH.json with no `lastSyncAt` and no conversation
-  // dirs in the store. Kick off a one-month inbox sync the first time we see
-  // that combination so the inbox isn't empty. We funnel through stable refs
-  // so the effect can depend on lastSyncAt alone — `conversations.length` and
-  // the freshly-bound callbacks change mid-sync via streaming events, and
-  // including them would retrigger this effect (though autoSyncedRef would
-  // still gate it). Refs keep the dep list honest without that risk.
+  // ----- Auto-sync on every launch -----
+  // Pull inbox updates from LinkedIn once on mount so the user never has to
+  // hit `r` manually just to catch up after reopening. The TUI is a pure
+  // viewer — it does not extend the sync window or otherwise second-guess
+  // the CLI. Fresh accounts (no lastSyncAt) get a one-month backfill so the
+  // inbox isn't empty; everything else rides on the CLI's incremental logic.
   const doSyncInboxRef = useRef(doSyncInbox);
   useEffect(() => {
     doSyncInboxRef.current = doSyncInbox;
   }, [doSyncInbox]);
-  const conversationsLenRef = useRef(conversations.length);
-  useEffect(() => {
-    conversationsLenRef.current = conversations.length;
-  }, [conversations.length]);
   const autoSyncedRef = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run-once-on-mount
   useEffect(() => {
     if (autoSyncedRef.current) return;
-    if (lastSyncAt) {
-      autoSyncedRef.current = true;
-      return;
-    }
-    if (conversationsLenRef.current > 0) {
-      // Store has data — treat as already initialized even if AUTH.json hadn't
-      // been written by a prior version of the CLI.
-      autoSyncedRef.current = true;
-      return;
-    }
     autoSyncedRef.current = true;
-    showToastRef.current("first run — pulling the last month from LinkedIn…", 60_000);
-    void doSyncInboxRef.current({ from: "1mo", quiet: true });
-  }, [lastSyncAt]);
+    const freshAccount = !lastSyncAt;
+    if (freshAccount) {
+      showToastRef.current("first run — pulling the last month from LinkedIn…", 60_000);
+      void doSyncInboxRef.current({ from: "1mo", quiet: true });
+    } else {
+      void doSyncInboxRef.current({ quiet: true });
+    }
+  }, []);
 
   // ----- Auto-backfill on conversation open -----
   // The first time the user opens a conversation that hasn't been fully
@@ -471,6 +472,56 @@ export function App({ account }: Props) {
     },
     [conversations, selectedConvId, account.slug, reload, showToast]
   );
+
+  // ----- React -----
+  const doReact = useCallback(
+    async (emoji: string, unreact: boolean) => {
+      const conv = conversations.find((c) => c.convId === selectedConvId);
+      if (!conv) {
+        showToast("no conversation selected");
+        return;
+      }
+      if (messageCursorIdx === null) {
+        showToast("no message selected");
+        return;
+      }
+      const msg = messages[messageCursorIdx];
+      if (!msg) {
+        showToast("no message selected");
+        return;
+      }
+      const target = conv.slug || conv.backendUrn || conv.convId;
+      setReacting(true);
+      try {
+        await reactToMessage(target, emoji, {
+          account: account.slug,
+          message: msg.urn,
+          unreact,
+        });
+        showToast(unreact ? `removed ${emoji}` : `reacted ${emoji}`);
+        // Let the CLI finish its git commit, then reload so the updated
+        // reactions surface without waiting for the next listen heartbeat.
+        setTimeout(reload, 400);
+      } catch (e) {
+        showToast(`react failed: ${e instanceof Error ? e.message : e}`, 6000);
+      } finally {
+        setReacting(false);
+        setMode("browse");
+        setMessageCursorIdx(null);
+      }
+    },
+    [conversations, selectedConvId, messages, messageCursorIdx, account.slug, reload, showToast]
+  );
+
+  // Reset the message cursor whenever the conversation changes so we don't
+  // carry an index into a mismatched message list. Biome's exhaustive-deps
+  // rule flags `selectedConvId` as "unused" inside the effect body, but we
+  // genuinely want the effect to re-fire on every change — the identifier IS
+  // the trigger.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: trigger-only dep
+  useEffect(() => {
+    setMessageCursorIdx(null);
+  }, [selectedConvId]);
 
   // ----- New conversation pick -----
   const onPickNew = useCallback(
@@ -592,6 +643,44 @@ export function App({ account }: Props) {
         // We only need to make sure App-level keys don't fire underneath.
         return;
       }
+      if (mode === "reactionPick") {
+        // ReactionPicker owns its own keybindings.
+        return;
+      }
+      if (mode === "messageSelect") {
+        if (key.escape) {
+          setMode("browse");
+          setMessageCursorIdx(null);
+          return;
+        }
+        if (key.return) {
+          if (messageCursorIdx !== null && messages[messageCursorIdx]) {
+            setMode("reactionPick");
+          }
+          return;
+        }
+        // j = newer (increment), k = older (decrement). Messages are sorted
+        // oldest-first so the newest sits at the last index.
+        if (key.downArrow || input === "j") {
+          setMessageCursorIdx((c) =>
+            c === null ? messages.length - 1 : Math.min(messages.length - 1, c + 1)
+          );
+          return;
+        }
+        if (key.upArrow || input === "k") {
+          setMessageCursorIdx((c) => (c === null ? messages.length - 1 : Math.max(0, c - 1)));
+          return;
+        }
+        if (input === "g") {
+          setMessageCursorIdx(0);
+          return;
+        }
+        if (input === "G") {
+          setMessageCursorIdx(messages.length - 1);
+          return;
+        }
+        return;
+      }
 
       // browse mode
       if (input === "q") {
@@ -613,6 +702,20 @@ export function App({ account }: Props) {
       }
       if (input === "i") {
         if (selectedConvId) setMode("compose");
+        return;
+      }
+      if (input === "x") {
+        // Start a reaction flow: select a message, then pick an emoji.
+        if (!selectedConvId) {
+          showToast("select a conversation first");
+          return;
+        }
+        if (messages.length === 0) {
+          showToast("no messages to react to");
+          return;
+        }
+        setMessageCursorIdx(messages.length - 1);
+        setMode("messageSelect");
         return;
       }
       if (input === "t") {
@@ -639,8 +742,9 @@ export function App({ account }: Props) {
         return;
       }
       if (input === "R") {
-        reload();
-        showToast("reloaded from store");
+        // Full re-sync: bypass knownNewestAt dedup so all fetched messages
+        // are upserted. Heals stale reactions, parser fixes, etc.
+        void doSyncInbox({ resync: true });
         return;
       }
       if (input === "g") {
@@ -679,7 +783,13 @@ export function App({ account }: Props) {
         return;
       }
     },
-    { isActive: mode !== "new" && mode !== "templatePick" && mode !== "templateManage" }
+    {
+      isActive:
+        mode !== "new" &&
+        mode !== "templatePick" &&
+        mode !== "templateManage" &&
+        mode !== "reactionPick",
+    }
   );
 
   // ----- Command palette runner -----
@@ -746,7 +856,8 @@ export function App({ account }: Props) {
   const sidebarWidth = Math.max(28, Math.min(42, Math.floor(cols * 0.32)));
   const threadWidth = cols - sidebarWidth - 1; // 1 col divider
   const statusHeight = 1;
-  const composerHeight = 1;
+  const pickerHeight = Math.min(10, Math.max(5, Math.floor(rows * 0.3)));
+  const composerHeight = mode === "reactionPick" ? pickerHeight : 1;
   const dividerHeight = 1;
   const bodyHeight = Math.max(8, rows - statusHeight - composerHeight - dividerHeight - 1);
 
@@ -829,6 +940,8 @@ export function App({ account }: Props) {
     );
   }
 
+  // reactionPick is rendered inline in the main layout (below).
+
   if (mode === "templateManage") {
     return (
       <Box flexDirection="column" width={cols} height={rows}>
@@ -880,6 +993,11 @@ export function App({ account }: Props) {
           width={threadWidth}
           height={bodyHeight}
           scrollOffset={scrollOffset}
+          selectedMessageUrn={
+            (mode === "messageSelect" || mode === "reactionPick") && messageCursorIdx !== null
+              ? (messages[messageCursorIdx]?.urn ?? null)
+              : null
+          }
         />
       </Box>
 
@@ -902,6 +1020,27 @@ export function App({ account }: Props) {
                 placeholder="sync · sync <slug> · reload · help · quit"
               />
             </Box>
+          </Box>
+        ) : mode === "reactionPick" ? (
+          (() => {
+            const targetMsg = messageCursorIdx !== null ? messages[messageCursorIdx] : null;
+            if (!targetMsg) return null;
+            return (
+              <ReactionPicker
+                message={targetMsg}
+                width={cols}
+                height={composerHeight}
+                onCancel={() => setMode("messageSelect")}
+                onPick={(emoji, unreact) => {
+                  if (!reacting) void doReact(emoji, unreact);
+                }}
+              />
+            );
+          })()
+        ) : mode === "messageSelect" ? (
+          <Box width={cols} paddingX={1}>
+            <Text color="yellowBright">react</Text>
+            <Text dimColor> · j/k or ↑/↓ pick message · ↵ open picker · Esc cancel</Text>
           </Box>
         ) : (
           <Composer

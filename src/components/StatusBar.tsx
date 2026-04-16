@@ -13,6 +13,8 @@ const MODE_HINT: Partial<Record<Mode, string>> = {
   new: "↵ select · Esc cancel",
   templatePick: "↵ insert · Esc cancel",
   templateManage: "n new · e edit · d delete · Esc close",
+  messageSelect: "j/k pick · ↵ emoji · Esc cancel",
+  reactionPick: "1-6 quick · type search · ↵ pick · Esc back",
 };
 
 /**
@@ -115,10 +117,18 @@ export function StatusBar({
             <Text dimColor>{` ${syncActivity.messagesFetched}m`}</Text>
           )}
         </>
-      ) : lastSyncAt ? (
+      ) : lastSyncAt && !live ? (
+        // Only show the "synced X ago" label when we're NOT live on SSE. When
+        // the listen channel is flowing, real-time updates make the last-sync
+        // time uninteresting (and misleading — we're current, not stale).
         <>
           <Text dimColor> · </Text>
-          <Text dimColor>synced {relativeTime(lastSyncAt) || "now"} ago</Text>
+          <Text dimColor>
+            {(() => {
+              const rel = relativeTime(lastSyncAt);
+              return rel === "now" ? "synced just now" : `synced ${rel} ago`;
+            })()}
+          </Text>
         </>
       ) : null}
       {toast ? (

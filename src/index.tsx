@@ -4,16 +4,39 @@ import { render } from "ink";
 import { App } from "./app.tsx";
 import { findAccounts, getLilacBin, getStorePath } from "./lib/lilac.ts";
 
-function runLogin(binPath: string, storePath: string): boolean {
+type StatusEntry = {
+  profileId: string;
+  slug: string | null;
+  name: string | null;
+  status: string;
+  cookiesValid: boolean;
+};
+
+/**
+ * Shell out to `lilac status --json` and return the parsed entries.
+ * Returns [] on any failure (missing binary, no accounts, parse error) — the
+ * caller treats that as "run login".
+ */
+function readStatuses(binPath: string, storePath: string): StatusEntry[] {
+  const result = spawnSync(binPath, ["--store", storePath, "status", "--json"], {
+    stdio: ["ignore", "pipe", "pipe"],
+    encoding: "utf8",
+  });
+  if (result.status !== 0) return [];
+  try {
+    const parsed = JSON.parse(result.stdout.trim() || "[]");
+    return Array.isArray(parsed) ? (parsed as StatusEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function runLogin(binPath: string, storePath: string, reason: string): boolean {
   // Hand stdio to the lilac CLI so its native login flow (browser auth,
   // prompts, etc.) can run unmodified. Ink hasn't been mounted yet so the
   // terminal is in cooked mode and the CLI gets a clean tty.
   process.stdout.write(
-    `\n` +
-      `  Welcome to lilac-tui.\n` +
-      `  No accounts in ${storePath} yet — running first-time login.\n` +
-      `  (Press Ctrl-C to cancel.)\n` +
-      `\n`
+    `\n` + `  Welcome to lilac-tui.\n` + `  ${reason}\n` + `  (Press Ctrl-C to cancel.)\n` + `\n`
   );
   const result = spawnSync(binPath, ["--store", storePath, "login"], {
     stdio: "inherit",
@@ -59,7 +82,9 @@ function main() {
 
   let accounts = findAccounts(storePath);
   if (accounts.length === 0) {
-    if (!runLogin(binPath, storePath)) {
+    if (
+      !runLogin(binPath, storePath, `No accounts in ${storePath} yet — running first-time login.`)
+    ) {
       process.exit(1);
     }
     accounts = findAccounts(storePath);
@@ -74,8 +99,30 @@ function main() {
 
   // Pick the first account, or honor LILAC_ACCOUNT.
   const wanted = process.env.LILAC_ACCOUNT;
-  const account =
-    (wanted && accounts.find((a) => a.slug === wanted || a.profileId === wanted)) || accounts[0];
+  const pick = (list: typeof accounts) =>
+    (wanted && list.find((a) => a.slug === wanted || a.profileId === wanted)) || list[0];
+  let account = pick(accounts);
+
+  // Check that the chosen account's LinkedIn cookies are still valid. Expired
+  // sessions would otherwise manifest as mysterious 401s during auto-sync,
+  // with the TUI stuck on an empty inbox. Trigger login here so the browser
+  // flow runs before Ink takes over the terminal.
+  if (account) {
+    const current = account;
+    const statuses = readStatuses(binPath, storePath);
+    const entry = statuses.find(
+      (s) => s.profileId === current.profileId || s.slug === current.slug
+    );
+    if (entry && !entry.cookiesValid) {
+      const who = entry.name || entry.slug || entry.profileId;
+      if (!runLogin(binPath, storePath, `Session for ${who} has expired — re-authenticating.`)) {
+        process.exit(1);
+      }
+      // Re-read accounts so AUTH.json updates from the login flow are picked up.
+      accounts = findAccounts(storePath);
+      account = pick(accounts);
+    }
+  }
 
   if (!account) {
     process.stderr.write("lilac-tui: account not found\n");

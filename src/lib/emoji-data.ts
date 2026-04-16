@@ -1,0 +1,272 @@
+// Compact emoji dataset for the reaction picker. Each entry is
+// [emoji, ...keywords]. Keywords are lowercase, no spaces.
+// The first 6 entries are LinkedIn's default reaction palette.
+
+export type EmojiEntry = { emoji: string; keywords: string[] };
+
+const RAW: [string, ...string[]][] = [
+  // LinkedIn defaults (keep these first)
+  ["👍", "thumbsup", "like", "yes", "ok", "agree", "good", "approve"],
+  ["❤️", "heart", "love", "red"],
+  ["😂", "laugh", "lol", "joy", "haha", "funny", "rofl"],
+  ["😮", "surprised", "wow", "omg", "shocked", "astonished"],
+  ["😢", "sad", "cry", "tear", "unhappy"],
+  ["👏", "clap", "applause", "bravo", "congrats", "well-done"],
+
+  // People & faces
+  ["😀", "grin", "happy", "smile"],
+  ["😃", "smiley", "happy", "smile"],
+  ["😄", "smile", "happy", "grin"],
+  ["😁", "beaming", "grin", "smile"],
+  ["😆", "laughing", "satisfied", "haha"],
+  ["😅", "sweat", "nervous", "relief"],
+  ["🤣", "rofl", "lol", "rolling", "laugh"],
+  ["🙂", "slight-smile", "ok"],
+  ["🙃", "upside-down", "sarcasm", "silly"],
+  ["😉", "wink", "flirt"],
+  ["😊", "blush", "happy", "shy"],
+  ["😇", "angel", "innocent", "halo"],
+  ["🥰", "love", "hearts", "adore", "crush"],
+  ["😍", "heart-eyes", "love", "crush"],
+  ["🤩", "star-struck", "amazed", "excited"],
+  ["😘", "kiss", "love", "blow-kiss"],
+  ["😗", "kiss", "whistle"],
+  ["😚", "kiss", "blush"],
+  ["😙", "kiss", "smile"],
+  ["🥲", "happy-tear", "bittersweet", "grateful"],
+  ["😋", "yum", "delicious", "tasty"],
+  ["😛", "tongue", "playful"],
+  ["😜", "wink-tongue", "playful", "crazy"],
+  ["🤪", "zany", "crazy", "wild", "goofy"],
+  ["😝", "tongue", "squint", "playful"],
+  ["🤑", "money", "rich", "dollar"],
+  ["🤗", "hug", "embrace", "warm"],
+  ["🤭", "hand-over-mouth", "oops", "giggle"],
+  ["🤫", "shush", "quiet", "secret"],
+  ["🤔", "thinking", "hmm", "wonder", "consider"],
+  ["🫡", "salute", "respect", "honor"],
+  ["🤐", "zipper-mouth", "secret", "mute"],
+  ["🤨", "raised-eyebrow", "skeptical", "sus"],
+  ["😐", "neutral", "meh", "blank"],
+  ["😑", "expressionless", "blank", "meh"],
+  ["😶", "no-mouth", "speechless", "silent"],
+  ["🫠", "melting", "disappear", "hot", "embarrassed"],
+  ["😏", "smirk", "sly", "suggestive"],
+  ["😒", "unamused", "annoyed", "meh"],
+  ["🙄", "eye-roll", "whatever", "annoyed"],
+  ["😬", "grimace", "awkward", "nervous", "yikes"],
+  ["🤥", "lying", "pinocchio"],
+  ["😌", "relieved", "peaceful", "calm"],
+  ["😔", "pensive", "sad", "disappointed"],
+  ["😪", "sleepy", "tired"],
+  ["🤤", "drool", "hungry", "want"],
+  ["😴", "sleep", "zzz", "tired", "bored"],
+  ["😷", "mask", "sick", "covid"],
+  ["🤒", "thermometer", "sick", "fever"],
+  ["🤕", "bandage", "hurt", "injured"],
+  ["🤢", "nauseous", "sick", "gross"],
+  ["🤮", "vomit", "puke", "sick"],
+  ["🥵", "hot", "sweating", "overheated"],
+  ["🥶", "cold", "freezing", "frozen"],
+  ["🥴", "woozy", "dizzy", "drunk", "tipsy"],
+  ["😵", "dizzy", "knocked-out", "dead"],
+  ["🤯", "mind-blown", "exploding-head", "shocked", "whoa"],
+  ["🤠", "cowboy", "yeehaw", "western"],
+  ["🥳", "party", "celebrate", "birthday", "confetti"],
+  ["🥸", "disguise", "glasses", "incognito"],
+  ["😎", "cool", "sunglasses", "chill"],
+  ["🤓", "nerd", "glasses", "smart", "geek"],
+  ["🧐", "monocle", "inspect", "curious", "detective"],
+  ["😕", "confused", "unsure", "puzzled"],
+  ["🫤", "diagonal-mouth", "meh", "unsure"],
+  ["😟", "worried", "concerned", "anxious"],
+  ["🙁", "frown", "sad", "disappointed"],
+  ["😮", "open-mouth", "surprised", "gasp"],
+  ["😯", "hushed", "surprised", "quiet"],
+  ["😲", "astonished", "shocked", "surprised"],
+  ["😳", "flushed", "embarrassed", "surprised"],
+  ["🥺", "pleading", "puppy-eyes", "please", "cute"],
+  ["🥹", "holding-back-tears", "proud", "touched", "grateful"],
+  ["😦", "frowning", "worried"],
+  ["😧", "anguished", "worried"],
+  ["😨", "fearful", "scared", "afraid"],
+  ["😰", "anxious", "nervous", "sweat"],
+  ["😥", "disappointed", "relieved", "sad"],
+  ["😭", "sobbing", "cry", "bawling", "sad"],
+  ["😱", "scream", "scared", "horror", "omg"],
+  ["😖", "confounded", "frustrated"],
+  ["😣", "persevere", "struggle"],
+  ["😞", "disappointed", "sad", "let-down"],
+  ["😓", "downcast", "sweat", "hard-work"],
+  ["😩", "weary", "tired", "exhausted"],
+  ["😫", "tired", "exhausted"],
+  ["🥱", "yawn", "bored", "sleepy", "tired"],
+  ["😤", "triumph", "frustrated", "angry", "huff"],
+  ["😡", "angry", "mad", "rage", "pouting"],
+  ["😠", "angry", "mad", "grumpy"],
+  ["🤬", "cursing", "swearing", "angry", "censored"],
+  ["😈", "devil", "evil", "mischief", "horns"],
+  ["👿", "imp", "angry-devil"],
+  ["💀", "skull", "dead", "death", "rip"],
+  ["☠️", "skull-crossbones", "danger", "death", "pirate"],
+  ["💩", "poop", "poo"],
+  ["🤡", "clown"],
+  ["👹", "ogre", "monster", "demon"],
+  ["👻", "ghost", "boo", "halloween"],
+  ["👽", "alien", "ufo"],
+  ["🤖", "robot", "bot", "ai"],
+  ["😺", "cat-smile", "happy-cat"],
+  ["🫶", "heart-hands", "love", "appreciate"],
+
+  // Gestures & hands
+  ["👋", "wave", "hello", "hi", "bye"],
+  ["🤚", "raised-hand", "stop", "high-five"],
+  ["🖐️", "hand-spread", "five", "high-five"],
+  ["✋", "raised-hand", "stop", "high-five"],
+  ["🖖", "vulcan", "spock", "trek"],
+  ["👌", "ok", "perfect", "fine", "pinch"],
+  ["🤌", "pinched-fingers", "italian", "chef-kiss"],
+  ["🤏", "pinching", "small", "tiny", "little"],
+  ["✌️", "peace", "victory", "two"],
+  ["🤞", "crossed-fingers", "luck", "hope"],
+  ["🫰", "hand-index-thumb", "money", "snap"],
+  ["🤟", "love-you", "rock", "ily"],
+  ["🤘", "rock-on", "metal", "horns"],
+  ["🤙", "call-me", "shaka", "hang-loose"],
+  ["👈", "point-left", "left"],
+  ["👉", "point-right", "right"],
+  ["👆", "point-up", "up"],
+  ["👇", "point-down", "down"],
+  ["☝️", "index-up", "one", "actually"],
+  ["👍", "thumbs-up", "like", "yes", "good"],
+  ["👎", "thumbs-down", "dislike", "no", "bad"],
+  ["✊", "fist", "power", "solidarity"],
+  ["👊", "fist-bump", "punch"],
+  ["🤛", "left-fist", "fist-bump"],
+  ["🤜", "right-fist", "fist-bump"],
+  ["🙌", "raised-hands", "celebrate", "hooray", "praise"],
+  ["👐", "open-hands", "jazz-hands"],
+  ["🤲", "palms-up", "prayer", "receive"],
+  ["🤝", "handshake", "deal", "agreement", "partner"],
+  ["🙏", "pray", "thanks", "please", "namaste", "hope"],
+  ["✍️", "writing", "write", "pen"],
+  ["💪", "muscle", "strong", "flex", "bicep", "arm"],
+  ["🫵", "point-at-viewer", "you"],
+
+  // Hearts & symbols
+  ["❤️", "red-heart", "love"],
+  ["🧡", "orange-heart", "love"],
+  ["💛", "yellow-heart", "love", "friend"],
+  ["💚", "green-heart", "love"],
+  ["💙", "blue-heart", "love"],
+  ["💜", "purple-heart", "love"],
+  ["🖤", "black-heart", "love", "dark"],
+  ["🤍", "white-heart", "love", "pure"],
+  ["🤎", "brown-heart", "love"],
+  ["💔", "broken-heart", "sad", "heartbreak"],
+  ["💕", "two-hearts", "love"],
+  ["💞", "revolving-hearts", "love"],
+  ["💓", "heartbeat", "love"],
+  ["💗", "growing-heart", "love"],
+  ["💖", "sparkling-heart", "love"],
+  ["💘", "cupid", "heart-arrow", "love"],
+  ["💝", "gift-heart", "love", "present"],
+  ["💯", "hundred", "perfect", "score", "100"],
+  ["💥", "boom", "collision", "explosion", "bang"],
+  ["💫", "dizzy", "star", "sparkle"],
+  ["⭐", "star", "gold"],
+  ["🌟", "glowing-star", "shine"],
+  ["✨", "sparkles", "clean", "new", "magic"],
+  ["💢", "anger", "angry", "vein"],
+  ["💬", "speech-bubble", "comment", "talk"],
+  ["🔥", "fire", "hot", "lit", "flame"],
+  ["💡", "lightbulb", "idea", "think"],
+  ["🎯", "bullseye", "target", "goal", "dart"],
+  ["🏆", "trophy", "winner", "champion", "award"],
+  ["🎉", "party-popper", "celebrate", "confetti", "tada"],
+  ["🎊", "confetti-ball", "celebrate", "party"],
+  ["🎈", "balloon", "party", "birthday"],
+  ["🎁", "gift", "present", "birthday", "wrapped"],
+
+  // Objects & misc
+  ["☕", "coffee", "cafe", "drink", "morning"],
+  ["🍺", "beer", "drink", "cheers"],
+  ["🍕", "pizza", "food"],
+  ["🍩", "donut", "food", "sweet"],
+  ["🎵", "music", "note", "song"],
+  ["📱", "phone", "mobile", "cell"],
+  ["💻", "laptop", "computer", "code"],
+  ["⌨️", "keyboard", "type", "code"],
+  ["🚀", "rocket", "launch", "ship", "fast", "deploy"],
+  ["✅", "check", "done", "complete", "yes", "correct"],
+  ["❌", "cross", "no", "wrong", "delete", "cancel"],
+  ["⚠️", "warning", "caution", "alert"],
+  ["❓", "question", "help", "what"],
+  ["❗", "exclamation", "important", "alert"],
+  ["🔒", "lock", "secure", "private"],
+  ["🔑", "key", "password", "access"],
+  ["📝", "memo", "note", "write", "document"],
+  ["📌", "pin", "pushpin", "important"],
+  ["📎", "paperclip", "attach"],
+  ["🔗", "link", "url", "chain"],
+  ["📊", "chart", "data", "stats", "graph"],
+  ["🗂️", "folders", "organize", "file"],
+  ["📁", "folder", "directory", "file"],
+  ["🗑️", "trash", "delete", "garbage", "bin"],
+  ["⏰", "alarm", "clock", "time", "deadline"],
+  ["🏠", "house", "home"],
+  ["🌍", "globe", "earth", "world", "international"],
+  ["🌈", "rainbow", "colorful", "pride"],
+  ["☀️", "sun", "sunny", "bright", "weather"],
+  ["🌙", "moon", "night", "crescent"],
+  ["⚡", "lightning", "zap", "electric", "fast", "power"],
+  ["🎨", "art", "paint", "palette", "creative"],
+  ["🧪", "test-tube", "experiment", "science", "lab"],
+  ["🔬", "microscope", "science", "research"],
+  ["💎", "gem", "diamond", "precious", "jewel"],
+  ["🪄", "wand", "magic"],
+  ["🧠", "brain", "smart", "think", "mind"],
+  ["👀", "eyes", "look", "see", "watch", "stare"],
+  ["👁️", "eye", "look", "see"],
+  ["👂", "ear", "listen", "hear"],
+  ["👃", "nose", "smell"],
+  ["🫡", "salute"],
+];
+
+export const EMOJI_DATA: EmojiEntry[] = RAW.map(([emoji, ...keywords]) => ({
+  emoji,
+  keywords,
+}));
+
+// Deduplicated set: first occurrence wins (LinkedIn defaults stay at top).
+const seen = new Set<string>();
+export const UNIQUE_EMOJI: EmojiEntry[] = EMOJI_DATA.filter((e) => {
+  if (seen.has(e.emoji)) return false;
+  seen.add(e.emoji);
+  return true;
+});
+
+export const LINKEDIN_DEFAULTS = UNIQUE_EMOJI.slice(0, 6);
+
+/**
+ * Filter emojis by search query. Returns all emojis when query is empty.
+ * Matches against keywords with simple substring matching.
+ */
+export function searchEmoji(query: string, limit = 50): EmojiEntry[] {
+  if (!query.trim()) return UNIQUE_EMOJI.slice(0, limit);
+  const q = query.toLowerCase().trim();
+  const results: EmojiEntry[] = [];
+  for (const entry of UNIQUE_EMOJI) {
+    if (results.length >= limit) break;
+    // Check if any keyword starts with the query (prefix match prioritized)
+    const prefixMatch = entry.keywords.some((kw) => kw.startsWith(q));
+    if (prefixMatch) {
+      results.push(entry);
+      continue;
+    }
+    // Substring match as fallback
+    const subMatch = entry.keywords.some((kw) => kw.includes(q));
+    if (subMatch) results.push(entry);
+  }
+  return results;
+}

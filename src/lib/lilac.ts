@@ -399,6 +399,33 @@ export async function sendMessage(
   }
 }
 
+export type ReactOptions = RunOptions & {
+  /** Specific message URN to react to. Defaults to most recent in the conversation. */
+  message?: string;
+  /** Remove the reaction instead of adding. */
+  unreact?: boolean;
+};
+
+/**
+ * Add or remove an emoji reaction on a message via `lilac react`.
+ * `target` can be a slug, conversation URN, or LinkedIn URL.
+ */
+export async function reactToMessage(
+  target: string,
+  emoji: string,
+  opts: ReactOptions = {}
+): Promise<unknown> {
+  const args = ["react", target, emoji, "--json"];
+  if (opts.message) args.push("--message", opts.message);
+  if (opts.unreact) args.push("--unreact");
+  const out = await runLilac(args, { ...opts, timeoutMs: 15_000 });
+  try {
+    return parseJsonOutput<unknown>(out);
+  } catch {
+    return { ok: true, raw: out };
+  }
+}
+
 export type SyncInboxOptions = RunOptions & {
   /** Older boundary — duration ("1mo") or ISO date. */
   from?: string;
@@ -408,6 +435,8 @@ export type SyncInboxOptions = RunOptions & {
   limit?: number;
   /** Stream NDJSON progress events as the sync runs. */
   onEvent?: (event: SyncEvent) => void;
+  /** Full re-sync: upsert all fetched messages (fixes stale reactions, parser changes). */
+  resync?: boolean;
 };
 
 export async function syncInbox(opts: SyncInboxOptions = {}): Promise<SyncEvent | null> {
@@ -415,6 +444,7 @@ export async function syncInbox(opts: SyncInboxOptions = {}): Promise<SyncEvent 
   if (opts.from) args.push("--from", opts.from);
   if (opts.to) args.push("--to", opts.to);
   if (opts.limit !== undefined) args.push("--limit", String(opts.limit));
+  if (opts.resync) args.push("--resync");
   return streamLilac(args, { ...opts, timeoutMs: 600_000 });
 }
 
