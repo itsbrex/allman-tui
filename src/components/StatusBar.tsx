@@ -18,7 +18,7 @@ const MODE_HINT: Partial<Record<Mode, string>> = {
 };
 
 /**
- * Live sync activity reported through the streaming `lilac sync --json` channel.
+ * Live sync activity reported through the streaming `allman sync --json` channel.
  * `null` means nothing is syncing right now.
  */
 export type SyncActivity = {
@@ -84,7 +84,7 @@ export function StatusBar({
   return (
     <Box width={width} paddingX={1}>
       <Text color="magentaBright" bold>
-        lilac
+        allman
       </Text>
       <Text dimColor> · </Text>
       <Text>{accountSlug}</Text>

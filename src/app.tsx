@@ -25,7 +25,7 @@ import {
   startListen,
   syncConversation,
   syncInbox,
-} from "./lib/lilac.ts";
+} from "./lib/allman.ts";
 import { loadTemplates, saveTemplates, type Template } from "./lib/templates.ts";
 import type { Account, Conversation, ListenEvent, Message, SearchResult } from "./lib/types.ts";
 
@@ -125,8 +125,8 @@ export function App({ account }: Props) {
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Quick-reply templates. Stored in ~/.config/lilac-tui/templates.json —
-  // TUI-local, not in the lilac store, because templates are UX metadata
+  // Quick-reply templates. Stored in ~/.config/allman-tui/templates.json —
+  // TUI-local, not in the allman store, because templates are UX metadata
   // rather than LinkedIn state.
   const [templates, setTemplates] = useState<Template[]>(() => loadTemplates());
   const updateTemplates = useCallback((next: Template[]) => {
@@ -231,8 +231,8 @@ export function App({ account }: Props) {
   }, [refreshAccountAuth]);
 
   // ----- Filesystem watch -----
-  // Catches out-of-band writes to the store — e.g. the user runs `lilac sync`
-  // or `lilac send` from another terminal while the TUI is open. Listen events
+  // Catches out-of-band writes to the store — e.g. the user runs `allman sync`
+  // or `allman send` from another terminal while the TUI is open. Listen events
   // and our own sync handlers already cover the in-process paths; this just
   // closes the gap for external CLI invocations. Debounce coalesces bursts
   // (e.g. a sync writing many messages in quick succession) into a single
@@ -267,10 +267,10 @@ export function App({ account }: Props) {
   }, [account.dir]);
 
   // ----- Listen subprocess -----
-  // Opt-out via LILAC_TUI_LISTEN=0 (or =false). Enabled by default so the TUI
+  // Opt-out via ALLMAN_TUI_LISTEN=0 (or =false). Enabled by default so the TUI
   // behaves like a real messenger inbox out of the box.
   useEffect(() => {
-    const flag = (process.env.LILAC_TUI_LISTEN || "").toLowerCase();
+    const flag = (process.env.ALLMAN_TUI_LISTEN || "").toLowerCase();
     if (flag === "0" || flag === "false" || flag === "off") {
       setListenStatus("off");
       return;
@@ -307,7 +307,7 @@ export function App({ account }: Props) {
   }, [account.slug]);
 
   // ----- Sync -----
-  // Streaming sync — subscribes to NDJSON progress events from `lilac sync --json`
+  // Streaming sync — subscribes to NDJSON progress events from `allman sync --json`
   // and threads them through into the status bar so the user sees live counts.
   const doSyncInbox = useCallback(
     async (

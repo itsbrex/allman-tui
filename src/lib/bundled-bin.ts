@@ -1,11 +1,11 @@
-// Resolves a runnable `lilac` binary from an asset embedded inside this
+// Resolves a runnable `allman` binary from an asset embedded inside this
 // executable. When `bun build --compile` packages the TUI, the asset is read
 // out of the bundle at runtime and written to a per-user cache directory with
 // the executable bit set, so it can be spawned like any normal binary.
 //
 // In dev mode (`bun run`) the import resolves to the on-disk path of
-// `assets/lilac`, which is normally a 4-byte stub committed to the repo —
-// detected here so we transparently fall back to PATH/LILAC_BIN.
+// `assets/allman`, which is normally a 4-byte stub committed to the repo —
+// detected here so we transparently fall back to PATH/ALLMAN_BIN.
 
 import { createHash } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -14,16 +14,16 @@ import { join } from "node:path";
 
 // @ts-expect-error — Bun's `with { type: "file" }` import attribute resolves
 // to a string path at build time but lacks an upstream TS declaration.
-import lilacAsset from "../../assets/lilac" with { type: "file" };
+import allmanAsset from "../../assets/allman" with { type: "file" };
 
-// Sentinel committed at `assets/lilac` so the import resolves cleanly in dev
+// Sentinel committed at `assets/allman` so the import resolves cleanly in dev
 // mode. Real builds overwrite it with the actual binary before
 // `bun build --compile` runs.
 const STUB_MAGIC = Buffer.from("STUB");
 
 let cached: string | null | undefined;
 
-export function getBundledLilacBin(): string | null {
+export function getBundledAllmanBin(): string | null {
   if (cached !== undefined) return cached;
   cached = extract();
   return cached;
@@ -32,7 +32,7 @@ export function getBundledLilacBin(): string | null {
 function extract(): string | null {
   let buf: Buffer;
   try {
-    buf = readFileSync(lilacAsset);
+    buf = readFileSync(allmanAsset);
   } catch {
     return null;
   }
@@ -43,10 +43,10 @@ function extract(): string | null {
   const hash = createHash("sha256").update(buf).digest("hex").slice(0, 16);
   const cacheDir = join(
     process.env.XDG_CACHE_HOME || join(homedir(), ".cache"),
-    "lilac-tui",
+    "allman-tui",
     "bin"
   );
-  const target = join(cacheDir, `lilac-${hash}`);
+  const target = join(cacheDir, `allman-${hash}`);
 
   // Reuse a previously extracted copy when sizes match — saves a write on
   // every launch and lets multiple TUI processes share the same exec.

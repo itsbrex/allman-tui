@@ -1,5 +1,5 @@
-// Mirrors the lilac store's RECORD.json + JSONL message shapes.
-// Kept loose where lilac stores `null` or omits fields on older records.
+// Mirrors the allman store's RECORD.json + JSONL message shapes.
+// Kept loose where allman stores `null` or omits fields on older records.
 
 export type Conversation = {
   convId: string;

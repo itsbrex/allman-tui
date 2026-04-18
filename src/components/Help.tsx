@@ -30,7 +30,7 @@ export function Help({ width, height }: Props) {
     <Box flexDirection="column" width={width} height={height} paddingX={3} paddingY={2}>
       <Box>
         <Text bold color="magentaBright">
-          lilac-tui
+          allman-tui
         </Text>
         <Text dimColor> · keyboard reference · Esc to close</Text>
       </Box>
@@ -44,10 +44,10 @@ export function Help({ width, height }: Props) {
         </Box>
       ))}
       <Box height={1} />
-      <Text dimColor>store: $LILAC_STORE · account: $LILAC_ACCOUNT · bin: $LILAC_BIN</Text>
+      <Text dimColor>store: $ALLMAN_STORE · account: $ALLMAN_ACCOUNT · bin: $ALLMAN_BIN</Text>
       <Text dimColor>
         Reads come straight from the file store; sends, sync, search, and live updates use the
-        bundled lilac binary.
+        bundled allman binary.
       </Text>
     </Box>
   );

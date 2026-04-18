@@ -26,42 +26,42 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      - name: Download matching lilac binary from lilac-cli release
+      - name: Download matching allman binary from allman-cli release
         env:
-          GH_TOKEN: ${{ secrets.LILAC_CLI_TOKEN || secrets.GITHUB_TOKEN }}
-          LILAC_CLI_VERSION: ${{ vars.LILAC_CLI_VERSION || 'latest' }}
+          GH_TOKEN: ${{ secrets.ALLMAN_CLI_TOKEN || secrets.GITHUB_TOKEN }}
+          ALLMAN_CLI_VERSION: ${{ vars.ALLMAN_CLI_VERSION || 'latest' }}
         run: |
           mkdir -p .bin
-          if [ "$LILAC_CLI_VERSION" = "latest" ]; then
-            gh release download --repo tarkaai/lilac-cli \
-              --pattern "lilac-linux-${{ matrix.target.arch }}" \
+          if [ "$ALLMAN_CLI_VERSION" = "latest" ]; then
+            gh release download --repo tarkaai/allman-cli \
+              --pattern "allman-linux-${{ matrix.target.arch }}" \
               --dir .bin
           else
-            gh release download "$LILAC_CLI_VERSION" --repo tarkaai/lilac-cli \
-              --pattern "lilac-linux-${{ matrix.target.arch }}" \
+            gh release download "$ALLMAN_CLI_VERSION" --repo tarkaai/allman-cli \
+              --pattern "allman-linux-${{ matrix.target.arch }}" \
               --dir .bin
           fi
-          mv ".bin/lilac-linux-${{ matrix.target.arch }}" .bin/lilac
-          chmod +x .bin/lilac
+          mv ".bin/allman-linux-${{ matrix.target.arch }}" .bin/allman
+          chmod +x .bin/allman
 
       - name: Build TUI binary
         env:
-          LILAC_BIN: ${{ github.workspace }}/.bin/lilac
+          ALLMAN_BIN: ${{ github.workspace }}/.bin/allman
           BUN_TARGET: ${{ matrix.target.bun }}
         run: bun scripts/build.ts
 
       - name: Rename output with arch suffix and checksum
         run: |
           cd dist
-          mv lilac-tui lilac-tui-linux-${{ matrix.target.arch }}
-          sha256sum lilac-tui-linux-${{ matrix.target.arch }} > lilac-tui-linux-${{ matrix.target.arch }}.sha256
+          mv allman-tui allman-tui-linux-${{ matrix.target.arch }}
+          sha256sum allman-tui-linux-${{ matrix.target.arch }} > allman-tui-linux-${{ matrix.target.arch }}.sha256
 
       - uses: actions/upload-artifact@v4
         with:
-          name: lilac-tui-linux-${{ matrix.target.arch }}
+          name: allman-tui-linux-${{ matrix.target.arch }}
           path: |
-            dist/lilac-tui-linux-${{ matrix.target.arch }}
-            dist/lilac-tui-linux-${{ matrix.target.arch }}.sha256
+            dist/allman-tui-linux-${{ matrix.target.arch }}
+            dist/allman-tui-linux-${{ matrix.target.arch }}.sha256
           if-no-files-found: error
 
   release:

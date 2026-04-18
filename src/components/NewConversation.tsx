@@ -1,7 +1,7 @@
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import { useEffect, useState } from "react";
-import { searchProfiles } from "../lib/lilac.ts";
+import { searchProfiles } from "../lib/allman.ts";
 import type { SearchResult } from "../lib/types.ts";
 
 type Props = {

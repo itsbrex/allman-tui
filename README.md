@@ -1,10 +1,10 @@
-# lilac-tui
+# allman-tui
 
 A re-imagined LinkedIn messenger inbox, in your terminal. A thin terminal
-front-end over the standalone `lilac` binary and its on-disk message store.
+front-end over the standalone `allman` binary and its on-disk message store.
 
 ```
-┌─ lilac · your-account ──────────┬─────────────────────────────────────────────┐
+┌─ allman · your-account ──────────┬─────────────────────────────────────────────┐
 │ / search                     │ Jamie Rivera  @jamie-rivera                 │
 │ ──────────────────────────── │ Senior Engineer | Building …         │
 │ ▸ ● Jamie Rivera         3d  │                                             │
@@ -18,7 +18,7 @@ front-end over the standalone `lilac` binary and its on-disk message store.
 │   …                          │                                             │
 ├──────────────────────────────┴─────────────────────────────────────────────┤
 │ ▶ Reply to Jamie…   (press i to compose)                                   │
-│ lilac · your-account · ● connected · 292 convs · 4 unread             [browse]│
+│ allman · your-account · ● connected · 292 convs · 4 unread             [browse]│
 │ j/k navigate · ↵ open · i compose · / search · n new · r sync · ? help     │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -28,11 +28,11 @@ front-end over the standalone `lilac` binary and its on-disk message store.
 ### From GitHub Releases (Linux, x64 and arm64)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tarkaai/lilac-tui/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/tarkaai/allman-tui/main/install.sh | bash
 ```
 
-Binaries include the `lilac` CLI embedded inside — no separate install required.
-See the [releases page](https://github.com/tarkaai/lilac-tui/releases) for direct downloads.
+Binaries include the `allman` CLI embedded inside — no separate install required.
+See the [releases page](https://github.com/tarkaai/allman-tui/releases) for direct downloads.
 
 ## Run
 
@@ -41,44 +41,44 @@ bun install
 bun run dev
 ```
 
-### Bundled `lilac` binary
+### Bundled `allman` binary
 
-`bun run build` produces a single self-contained `dist/lilac-tui` executable
-with the standalone `lilac` binary embedded inside. On first launch, the
-embedded copy is extracted to `$XDG_CACHE_HOME/lilac-tui/bin/lilac-<sha>` and
-re-used on every subsequent run — no separate `lilac` install required.
+`bun run build` produces a single self-contained `dist/allman-tui` executable
+with the standalone `allman` binary embedded inside. On first launch, the
+embedded copy is extracted to `$XDG_CACHE_HOME/allman-tui/bin/allman-<sha>` and
+re-used on every subsequent run — no separate `allman` install required.
 
 The build script (`scripts/build.ts`) needs to know where to find a real
-`lilac` binary to embed; it picks `LILAC_BIN` first, then `lilac` on `PATH`.
+`allman` binary to embed; it picks `ALLMAN_BIN` first, then `allman` on `PATH`.
 
 ### Resolution order at runtime
 
-1. `LILAC_BIN` environment variable (explicit override)
-2. The bundled binary embedded in `dist/lilac-tui` (production builds)
-3. `lilac` on `PATH` (dev mode and unbundled installs)
+1. `ALLMAN_BIN` environment variable (explicit override)
+2. The bundled binary embedded in `dist/allman-tui` (production builds)
+3. `allman` on `PATH` (dev mode and unbundled installs)
 
-Store discovery: `LILAC_STORE` env, otherwise always `$HOME/.lilac`. The
+Store discovery: `ALLMAN_STORE` env, otherwise always `$HOME/.allman`. The
 directory doesn't need to exist yet — if it's missing or empty, the TUI
-prints a clear "no accounts" error pointing at the bundled `lilac login`
+prints a clear "no accounts" error pointing at the bundled `allman login`
 command.
 
 If you have a single account, it loads automatically. Otherwise set
-`LILAC_ACCOUNT=<slug>`.
+`ALLMAN_ACCOUNT=<slug>`.
 
 ## Architecture
 
-`lilac-tui` is a thin React/Ink front-end over the on-disk lilac message
-store and the standalone `lilac` binary. It never reaches into the CLI's
-source tree — only the binary on `PATH` (or `LILAC_BIN`) and the
+`allman-tui` is a thin React/Ink front-end over the on-disk allman message
+store and the standalone `allman` binary. It never reaches into the CLI's
+source tree — only the binary on `PATH` (or `ALLMAN_BIN`) and the
 public file-store layout.
 
 - **Reads** (conversation list, message history, slug resolution) come straight
   from the JSONL/JSON files on disk for snappy navigation. No subprocess
   overhead per keystroke.
-- **Writes** (`send`, `sync`, `search`) shell out to the `lilac` binary so
+- **Writes** (`send`, `sync`, `search`) shell out to the `allman` binary so
   rate limiting, pre-send sync, and git commits go through the canonical path.
-- **Live updates** subscribe to `lilac listen`'s NDJSON event stream from a
-  long-running subprocess. Disable with `LILAC_TUI_LISTEN=0`.
+- **Live updates** subscribe to `allman listen`'s NDJSON event stream from a
+  long-running subprocess. Disable with `ALLMAN_TUI_LISTEN=0`.
 
 ```
 src/
@@ -92,16 +92,16 @@ src/
     NewConversation.tsx     contact-search modal for starting threads
     Help.tsx                key reference overlay
   lib/
-    lilac.ts                file-store reader + lilac binary shell-outs
-    bundled-bin.ts          extracts the embedded lilac binary on first run
+    allman.ts                file-store reader + allman binary shell-outs
+    bundled-bin.ts          extracts the embedded allman binary on first run
     types.ts                message / conversation / event shapes
     format.ts               relativeTime, dayLabel, color hashing
 scripts/
-  build.ts                  copies the lilac binary into assets/, runs
+  build.ts                  copies the allman binary into assets/, runs
                             `bun build --compile`, restores the stub
 assets/
-  lilac                     4-byte stub in the repo; replaced with the real
-                            lilac binary at build time, then restored
+  allman                     4-byte stub in the repo; replaced with the real
+                            allman binary at build time, then restored
 ```
 
 ## Keys
@@ -125,7 +125,7 @@ assets/
 
 ## Modes
 
-`lilac-tui` is modal — what your keys mean depends on which mode you're in.
+`allman-tui` is modal — what your keys mean depends on which mode you're in.
 The current mode is shown on the right of the status bar (`[browse]`,
 `[search]`, `[compose]`, `[new]`, `[command]`, `[help]`). The hint line below
 it always reflects the keys available in the current mode.
@@ -135,7 +135,7 @@ it always reflects the keys available in the current mode.
 | `browse`   | navigate conversations, jump into other modes |
 | `search`   | filter the sidebar by name / slug / headline |
 | `compose`  | type a reply, `↵` to send, `Esc` to cancel |
-| `new`      | search contacts via `lilac search`, pick one to open or draft |
+| `new`      | search contacts via `allman search`, pick one to open or draft |
 | `command`  | type a command palette command |
 | `help`     | full keybinding reference |
 
@@ -143,14 +143,14 @@ it always reflects the keys available in the current mode.
 
 | Variable            | Description |
 | ------------------- | ----------- |
-| `LILAC_BIN`         | Absolute path to the `lilac` binary. Defaults to `lilac` on `PATH`. |
-| `LILAC_STORE`       | Absolute path to a `.lilac` directory. Defaults to `$HOME/.lilac`. |
-| `LILAC_ACCOUNT`     | Account slug to use when multiple accounts exist |
-| `LILAC_TUI_LISTEN`  | Set to `0`/`false` to disable the `lilac listen` subprocess |
+| `ALLMAN_BIN`         | Absolute path to the `allman` binary. Defaults to `allman` on `PATH`. |
+| `ALLMAN_STORE`       | Absolute path to a `.allman` directory. Defaults to `$HOME/.allman`. |
+| `ALLMAN_ACCOUNT`     | Account slug to use when multiple accounts exist |
+| `ALLMAN_TUI_LISTEN`  | Set to `0`/`false` to disable the `allman listen` subprocess |
 
 ## Notes
 
-- Pre-send sync, rate limiting, and git commits are all handled by `lilac
+- Pre-send sync, rate limiting, and git commits are all handled by `allman
   send` — the TUI never writes to the store directly.
 - Starting a brand-new conversation drafts a placeholder thread in the
   sidebar and creates the real thread on LinkedIn on the first send.

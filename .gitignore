@@ -3,8 +3,8 @@ dist/
 *.log
 .DS_Store
 
-# Local lilac store (per-user message data, has its own git history)
-.lilac/
+# Local allman store (per-user message data, has its own git history)
+.allman/
 
 # Claude Code local settings
 .claude/

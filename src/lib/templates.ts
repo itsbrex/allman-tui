@@ -1,7 +1,7 @@
-// Quick-reply templates. TUI-local config (not in the lilac store) because
+// Quick-reply templates. TUI-local config (not in the allman store) because
 // templates are TUI UX data, not LinkedIn state — no rate limiting or git
-// commits needed. Stored as JSON at $XDG_CONFIG_HOME/lilac-tui/templates.json
-// (or ~/.config/lilac-tui/templates.json on platforms without XDG).
+// commits needed. Stored as JSON at $XDG_CONFIG_HOME/allman-tui/templates.json
+// (or ~/.config/allman-tui/templates.json on platforms without XDG).
 //
 // Bodies may contain {variable} placeholders which are substituted against
 // the target conversation at render time. Unknown variables are left as-is.
@@ -21,7 +21,7 @@ export type Template = {
 
 function configPath(): string {
   const base = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
-  return join(base, "lilac-tui", "templates.json");
+  return join(base, "allman-tui", "templates.json");
 }
 
 export function loadTemplates(): Template[] {

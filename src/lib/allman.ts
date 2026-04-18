@@ -1,5 +1,5 @@
-// Hybrid data layer: direct filesystem reads of the lilac store for fast
-// browsing, plus subprocess shell-outs to the standalone `lilac` binary for
+// Hybrid data layer: direct filesystem reads of the allman store for fast
+// browsing, plus subprocess shell-outs to the standalone `allman` binary for
 // writes and live streaming. The binary is the canonical writer (rate
 // limiting, pre-send sync, git commits) — we never write to the store
 // ourselves, and we never reach into the CLI's source tree.
@@ -17,7 +17,7 @@ import {
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { getBundledLilacBin } from "./bundled-bin.ts";
+import { getBundledAllmanBin } from "./bundled-bin.ts";
 import type { Account, Auth, Conversation, ListenEvent, Message, SearchResult } from "./types.ts";
 
 let resolvedBin: string | null = null;
@@ -25,38 +25,38 @@ let resolvedStore: string | null = null;
 
 export function getStorePath(): string {
   if (resolvedStore) return resolvedStore;
-  // Honor an explicit override; otherwise always default to `$HOME/.lilac`.
+  // Honor an explicit override; otherwise always default to `$HOME/.allman`.
   // The directory may not exist yet — that's fine, downstream code reports
-  // "no accounts" and prompts the user to run `lilac login`.
-  resolvedStore = process.env.LILAC_STORE || join(homedir(), ".lilac");
+  // "no accounts" and prompts the user to run `allman login`.
+  resolvedStore = process.env.ALLMAN_STORE || join(homedir(), ".allman");
   return resolvedStore;
 }
 
-export function getLilacBin(): string {
+export function getAllmanBin(): string {
   if (resolvedBin) return resolvedBin;
-  const env = process.env.LILAC_BIN;
+  const env = process.env.ALLMAN_BIN;
   if (env) {
     resolvedBin = env;
     return resolvedBin;
   }
   // Bundled binary embedded by `bun build --compile`. The first call extracts
   // it to a per-user cache dir; subsequent calls reuse the cached path.
-  const bundled = getBundledLilacBin();
+  const bundled = getBundledAllmanBin();
   if (bundled) {
     resolvedBin = bundled;
     return resolvedBin;
   }
-  // Final fallback: a system install of `lilac` on PATH. Used in dev
+  // Final fallback: a system install of `allman` on PATH. Used in dev
   // (`bun run dev`) and as an escape hatch if the embedded asset can't be
   // unpacked for some reason.
-  const onPath = typeof Bun !== "undefined" ? Bun.which("lilac") : null;
+  const onPath = typeof Bun !== "undefined" ? Bun.which("allman") : null;
   if (onPath) {
     resolvedBin = onPath;
     return resolvedBin;
   }
   throw new Error(
-    "could not find the `lilac` binary. Set LILAC_BIN to an absolute path, " +
-      "install `lilac` on PATH, or rebuild lilac-tui so the bundled binary " +
+    "could not find the `allman` binary. Set ALLMAN_BIN to an absolute path, " +
+      "install `allman` on PATH, or rebuild allman-tui so the bundled binary " +
       "is embedded."
   );
 }
@@ -217,8 +217,8 @@ type RunOptions = {
   timeoutMs?: number;
 };
 
-function runLilac(args: string[], opts: RunOptions = {}): Promise<string> {
-  const cmd = getLilacBin();
+function runAllman(args: string[], opts: RunOptions = {}): Promise<string> {
+  const cmd = getAllmanBin();
   const fullArgs: string[] = [];
   if (opts.account) fullArgs.push("--account", opts.account);
   fullArgs.push("--store", opts.store || getStorePath());
@@ -227,7 +227,7 @@ function runLilac(args: string[], opts: RunOptions = {}): Promise<string> {
   return new Promise((resolveP, rejectP) => {
     const child = spawn(cmd, fullArgs, {
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, LILAC_STORE: opts.store || getStorePath() },
+      env: { ...process.env, ALLMAN_STORE: opts.store || getStorePath() },
     });
     let stdout = "";
     let stderr = "";
@@ -240,7 +240,7 @@ function runLilac(args: string[], opts: RunOptions = {}): Promise<string> {
     const t = opts.timeoutMs
       ? setTimeout(() => {
           child.kill("SIGKILL");
-          rejectP(new Error(`lilac timed out: ${args.join(" ")}`));
+          rejectP(new Error(`allman timed out: ${args.join(" ")}`));
         }, opts.timeoutMs)
       : null;
     child.on("error", (err) => {
@@ -250,7 +250,7 @@ function runLilac(args: string[], opts: RunOptions = {}): Promise<string> {
     child.on("close", (code) => {
       if (t) clearTimeout(t);
       if (code !== 0) {
-        rejectP(new Error(`lilac exited ${code}: ${stderr.trim() || stdout.trim()}`));
+        rejectP(new Error(`allman exited ${code}: ${stderr.trim() || stdout.trim()}`));
         return;
       }
       resolveP(stdout);
@@ -259,18 +259,18 @@ function runLilac(args: string[], opts: RunOptions = {}): Promise<string> {
 }
 
 /**
- * Spawn lilac in --json mode and stream NDJSON events to a callback.
+ * Spawn allman in --json mode and stream NDJSON events to a callback.
  *
- * `lilac sync --json` emits one JSON object per line on stdout. Each line is
+ * `allman sync --json` emits one JSON object per line on stdout. Each line is
  * forwarded to `onEvent` so callers can display progress as it arrives. The
  * returned promise resolves with the final summary event when the process
  * exits, or rejects on non-zero exit.
  */
-function streamLilac(
+function streamAllman(
   args: string[],
   opts: RunOptions & { onEvent?: (event: SyncEvent) => void } = {}
 ): Promise<SyncEvent | null> {
-  const cmd = getLilacBin();
+  const cmd = getAllmanBin();
   const fullArgs: string[] = [];
   if (opts.account) fullArgs.push("--account", opts.account);
   fullArgs.push("--store", opts.store || getStorePath());
@@ -279,7 +279,7 @@ function streamLilac(
   return new Promise((resolveP, rejectP) => {
     const child = spawn(cmd, fullArgs, {
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, LILAC_STORE: opts.store || getStorePath() },
+      env: { ...process.env, ALLMAN_STORE: opts.store || getStorePath() },
     });
 
     let stdoutBuf = "";
@@ -288,7 +288,7 @@ function streamLilac(
     const t = opts.timeoutMs
       ? setTimeout(() => {
           child.kill("SIGKILL");
-          rejectP(new Error(`lilac timed out: ${args.join(" ")}`));
+          rejectP(new Error(`allman timed out: ${args.join(" ")}`));
         }, opts.timeoutMs)
       : null;
 
@@ -319,7 +319,7 @@ function streamLilac(
     child.on("close", (code) => {
       if (t) clearTimeout(t);
       if (code !== 0) {
-        rejectP(new Error(`lilac exited ${code}: ${stderr.trim() || "(no stderr)"}`));
+        rejectP(new Error(`allman exited ${code}: ${stderr.trim() || "(no stderr)"}`));
         return;
       }
       resolveP(last);
@@ -329,7 +329,7 @@ function streamLilac(
 
 function parseJsonOutput<T>(raw: string): T {
   const trimmed = raw.trim();
-  if (!trimmed) throw new Error("empty lilac output");
+  if (!trimmed) throw new Error("empty allman output");
   return JSON.parse(trimmed) as T;
 }
 
@@ -337,7 +337,7 @@ function parseJsonOutput<T>(raw: string): T {
 // Sync streaming events
 // ---------------------------------------------------------------------------
 
-/** Union of NDJSON events emitted by `lilac sync --json`. */
+/** Union of NDJSON events emitted by `allman sync --json`. */
 export type SyncEvent =
   | {
       event: "sync.start";
@@ -382,7 +382,7 @@ export async function searchProfiles(
   if (!query.trim()) return [];
   const args = ["search", query, "--json"];
   if (opts.limit) args.push("--limit", String(opts.limit));
-  const out = await runLilac(args, { ...opts, timeoutMs: 15_000 });
+  const out = await runAllman(args, { ...opts, timeoutMs: 15_000 });
   return parseJsonOutput<SearchResult[]>(out);
 }
 
@@ -391,7 +391,7 @@ export async function sendMessage(
   text: string,
   opts: RunOptions = {}
 ): Promise<unknown> {
-  const out = await runLilac(["send", to, text, "--json"], { ...opts, timeoutMs: 30_000 });
+  const out = await runAllman(["send", to, text, "--json"], { ...opts, timeoutMs: 30_000 });
   try {
     return parseJsonOutput<unknown>(out);
   } catch {
@@ -407,7 +407,7 @@ export type ReactOptions = RunOptions & {
 };
 
 /**
- * Add or remove an emoji reaction on a message via `lilac react`.
+ * Add or remove an emoji reaction on a message via `allman react`.
  * `target` can be a slug, conversation URN, or LinkedIn URL.
  */
 export async function reactToMessage(
@@ -418,7 +418,7 @@ export async function reactToMessage(
   const args = ["react", target, emoji, "--json"];
   if (opts.message) args.push("--message", opts.message);
   if (opts.unreact) args.push("--unreact");
-  const out = await runLilac(args, { ...opts, timeoutMs: 15_000 });
+  const out = await runAllman(args, { ...opts, timeoutMs: 15_000 });
   try {
     return parseJsonOutput<unknown>(out);
   } catch {
@@ -445,7 +445,7 @@ export async function syncInbox(opts: SyncInboxOptions = {}): Promise<SyncEvent 
   if (opts.to) args.push("--to", opts.to);
   if (opts.limit !== undefined) args.push("--limit", String(opts.limit));
   if (opts.resync) args.push("--resync");
-  return streamLilac(args, { ...opts, timeoutMs: 600_000 });
+  return streamAllman(args, { ...opts, timeoutMs: 600_000 });
 }
 
 export type SyncConversationOptions = RunOptions & {
@@ -466,7 +466,7 @@ export async function syncConversation(
   if (opts.from) args.push("--from", opts.from);
   if (opts.to) args.push("--to", opts.to);
   if (opts.limit !== undefined) args.push("--limit", String(opts.limit));
-  return streamLilac(args, { ...opts, timeoutMs: 600_000 });
+  return streamAllman(args, { ...opts, timeoutMs: 600_000 });
 }
 
 /** Legacy alias kept for callers that just want a fire-and-forget full sync. */
@@ -475,7 +475,7 @@ export async function syncAll(opts: RunOptions & { since?: string } = {}): Promi
 }
 
 // ---------------------------------------------------------------------------
-// Live event stream via `lilac listen`
+// Live event stream via `allman listen`
 // ---------------------------------------------------------------------------
 
 export type ListenHandle = {
@@ -487,7 +487,7 @@ export function startListen(
   onStatus: (s: "starting" | "connected" | "disconnected" | "error", info?: string) => void,
   opts: RunOptions = {}
 ): ListenHandle {
-  const cmd = getLilacBin();
+  const cmd = getAllmanBin();
   const args: string[] = [];
   if (opts.account) args.push("--account", opts.account);
   args.push("--store", opts.store || getStorePath());
@@ -496,7 +496,7 @@ export function startListen(
   onStatus("starting");
   const child = spawn(cmd, args, {
     stdio: ["ignore", "pipe", "pipe"],
-    env: { ...process.env, LILAC_STORE: opts.store || getStorePath() },
+    env: { ...process.env, ALLMAN_STORE: opts.store || getStorePath() },
   });
 
   let stopped = false;

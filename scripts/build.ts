@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
-// Build the lilac-tui standalone executable with the `lilac` binary embedded
+// Build the allman-tui standalone executable with the `allman` binary embedded
 // as a bundled asset.
 //
-//   1. Locate the standalone `lilac` binary (LILAC_BIN env or PATH).
-//   2. Copy it into assets/lilac so `bun build --compile` embeds it.
+//   1. Locate the standalone `allman` binary (ALLMAN_BIN env or PATH).
+//   2. Copy it into assets/allman so `bun build --compile` embeds it.
 //   3. Run `bun build --compile`.
 //   4. Restore the placeholder stub so the source tree stays clean.
 
@@ -12,15 +12,15 @@ import { copyFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dir, "..");
-const ASSET = join(ROOT, "assets", "lilac");
+const ASSET = join(ROOT, "assets", "allman");
 const ENTRY = join(ROOT, "src", "index.tsx");
-const OUT = join(ROOT, "dist", "lilac-tui");
+const OUT = join(ROOT, "dist", "allman-tui");
 
-const realBin = process.env.LILAC_BIN ?? Bun.which("lilac");
+const realBin = process.env.ALLMAN_BIN ?? Bun.which("allman");
 if (!realBin) {
   console.error(
-    "build: could not find a `lilac` binary to bundle.\n" +
-      "Set LILAC_BIN to an absolute path or install `lilac` on PATH."
+    "build: could not find a `allman` binary to bundle.\n" +
+      "Set ALLMAN_BIN to an absolute path or install `allman` on PATH."
   );
   process.exit(1);
 }
@@ -57,7 +57,7 @@ try {
   // Always restore the stub so a failed build doesn't leave a multi-MB
   // binary committed-but-untracked in the source tree.
   writeFileSync(ASSET, "STUB");
-  console.log("build: restored assets/lilac stub");
+  console.log("build: restored assets/allman stub");
 }
 
 process.exit(exitCode);
