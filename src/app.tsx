@@ -443,7 +443,10 @@ export function App({ account }: Props) {
       showToastRef.current("first run — pulling the last month from LinkedIn…", 60_000);
       void doSyncInboxRef.current({ from: "1mo", quiet: true });
     } else {
-      void doSyncInboxRef.current({ quiet: true });
+      // On launch, always widen to a 1-day window so we pull anything listen
+      // might have missed during recent disconnects (lastSyncAt can otherwise
+      // be seconds-fresh and exclude real backlog).
+      void doSyncInboxRef.current({ from: "1d", quiet: true });
     }
   }, []);
 
@@ -754,14 +757,18 @@ export function App({ account }: Props) {
         return;
       }
       if (input === "r") {
-        // Manual sync = incremental from lastSyncAt forward.
-        void doSyncInbox();
+        // Manual sync. Force a 1-day window instead of inheriting the CLI's
+        // lastSyncAt default — avoids missing messages sent during brief
+        // listen-subprocess disconnects where lastSyncAt has advanced past
+        // the message we actually care about.
+        void doSyncInbox({ from: "1d" });
         return;
       }
       if (input === "R") {
-        // Full re-sync: bypass knownNewestAt dedup so all fetched messages
-        // are upserted. Heals stale reactions, parser fixes, etc.
-        void doSyncInbox({ resync: true });
+        // Full re-sync over a generous 7-day window. Bypasses knownNewestAt
+        // dedup so all fetched messages are upserted — heals stale reactions,
+        // parser fixes, and anything listen missed during recent outages.
+        void doSyncInbox({ from: "7d", resync: true });
         return;
       }
       if (input === "o") {
