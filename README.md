@@ -156,3 +156,18 @@ it always reflects the keys available in the current mode.
   sidebar and creates the real thread on LinkedIn on the first send.
 - Listening is best-effort: if the subprocess fails, the status dot in the
   bar turns red and the rest of the app keeps working from the on-disk store.
+
+## Contributing
+
+Issues and pull requests welcome. Before sending a PR:
+
+```bash
+bun test
+bun run lint
+```
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
+
+Companion to [`allman-cli`](https://github.com/tarkaai/allman-cli), named in tribute to [Eric Allman](https://en.wikipedia.org/wiki/Eric_Allman), author of sendmail.
