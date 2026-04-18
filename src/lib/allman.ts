@@ -3,8 +3,11 @@
 // writes and live streaming. The binary is the canonical writer (rate
 // limiting, pre-send sync, git commits) — we never write to the store
 // ourselves, and we never reach into the CLI's source tree.
+//
+// All subprocess launches go through `./cli.ts` so every call inherits the
+// same `--store $HOME/.allman` prefix. Do not call `child_process.spawn`
+// on the binary directly from this file.
 
-import { spawn } from "node:child_process";
 import {
   existsSync,
   lstatSync,
@@ -14,52 +17,14 @@ import {
   realpathSync,
   statSync,
 } from "node:fs";
-import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { getBundledAllmanBin } from "./bundled-bin.ts";
+import { resolveBin, resolveStore, spawnAllman } from "./cli.ts";
 import type { Account, Auth, Conversation, ListenEvent, Message, SearchResult } from "./types.ts";
 
-let resolvedBin: string | null = null;
-let resolvedStore: string | null = null;
-
-export function getStorePath(): string {
-  if (resolvedStore) return resolvedStore;
-  // Honor an explicit override; otherwise always default to `$HOME/.allman`.
-  // The directory may not exist yet — that's fine, downstream code reports
-  // "no accounts" and prompts the user to run `allman login`.
-  resolvedStore = process.env.ALLMAN_STORE || join(homedir(), ".allman");
-  return resolvedStore;
-}
-
-export function getAllmanBin(): string {
-  if (resolvedBin) return resolvedBin;
-  const env = process.env.ALLMAN_BIN;
-  if (env) {
-    resolvedBin = env;
-    return resolvedBin;
-  }
-  // Bundled binary embedded by `bun build --compile`. The first call extracts
-  // it to a per-user cache dir; subsequent calls reuse the cached path.
-  const bundled = getBundledAllmanBin();
-  if (bundled) {
-    resolvedBin = bundled;
-    return resolvedBin;
-  }
-  // Final fallback: a system install of `allman` on PATH. Used in dev
-  // (`bun run dev`) and as an escape hatch if the embedded asset can't be
-  // unpacked for some reason.
-  const onPath = typeof Bun !== "undefined" ? Bun.which("allman") : null;
-  if (onPath) {
-    resolvedBin = onPath;
-    return resolvedBin;
-  }
-  throw new Error(
-    "could not find the `allman` binary. Set ALLMAN_BIN to an absolute path, " +
-      "install `allman` on PATH, or rebuild allman-tui so the bundled binary " +
-      "is embedded."
-  );
-}
+/** Legacy re-exports so existing callers keep working after the split. */
+export const getStorePath = resolveStore;
+export const getAllmanBin = resolveBin;
 
 // ---------------------------------------------------------------------------
 // Account discovery
@@ -213,28 +178,18 @@ export function loadMessages(accountDir: string, convId: string, tailN?: number)
 
 type RunOptions = {
   account?: string;
-  store?: string;
   timeoutMs?: number;
 };
 
 function runAllman(args: string[], opts: RunOptions = {}): Promise<string> {
-  const cmd = getAllmanBin();
-  const fullArgs: string[] = [];
-  if (opts.account) fullArgs.push("--account", opts.account);
-  fullArgs.push("--store", opts.store || getStorePath());
-  fullArgs.push(...args);
-
   return new Promise((resolveP, rejectP) => {
-    const child = spawn(cmd, fullArgs, {
-      stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, ALLMAN_STORE: opts.store || getStorePath() },
-    });
+    const child = spawnAllman(args, { account: opts.account });
     let stdout = "";
     let stderr = "";
-    child.stdout.on("data", (chunk) => {
+    child.stdout?.on("data", (chunk: Buffer) => {
       stdout += chunk.toString();
     });
-    child.stderr.on("data", (chunk) => {
+    child.stderr?.on("data", (chunk: Buffer) => {
       stderr += chunk.toString();
     });
     const t = opts.timeoutMs
@@ -270,17 +225,8 @@ function streamAllman(
   args: string[],
   opts: RunOptions & { onEvent?: (event: SyncEvent) => void } = {}
 ): Promise<SyncEvent | null> {
-  const cmd = getAllmanBin();
-  const fullArgs: string[] = [];
-  if (opts.account) fullArgs.push("--account", opts.account);
-  fullArgs.push("--store", opts.store || getStorePath());
-  fullArgs.push(...args);
-
   return new Promise((resolveP, rejectP) => {
-    const child = spawn(cmd, fullArgs, {
-      stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, ALLMAN_STORE: opts.store || getStorePath() },
-    });
+    const child = spawnAllman(args, { account: opts.account });
 
     let stdoutBuf = "";
     let stderr = "";
@@ -292,7 +238,7 @@ function streamAllman(
         }, opts.timeoutMs)
       : null;
 
-    child.stdout.on("data", (chunk) => {
+    child.stdout?.on("data", (chunk: Buffer) => {
       stdoutBuf += chunk.toString();
       while (true) {
         const nl = stdoutBuf.indexOf("\n");
@@ -309,7 +255,7 @@ function streamAllman(
         }
       }
     });
-    child.stderr.on("data", (chunk) => {
+    child.stderr?.on("data", (chunk: Buffer) => {
       stderr += chunk.toString();
     });
     child.on("error", (err) => {
@@ -487,21 +433,12 @@ export function startListen(
   onStatus: (s: "starting" | "connected" | "disconnected" | "error", info?: string) => void,
   opts: RunOptions = {}
 ): ListenHandle {
-  const cmd = getAllmanBin();
-  const args: string[] = [];
-  if (opts.account) args.push("--account", opts.account);
-  args.push("--store", opts.store || getStorePath());
-  args.push("listen");
-
   onStatus("starting");
-  const child = spawn(cmd, args, {
-    stdio: ["ignore", "pipe", "pipe"],
-    env: { ...process.env, ALLMAN_STORE: opts.store || getStorePath() },
-  });
+  const child = spawnAllman(["listen"], { account: opts.account });
 
   let stopped = false;
   let buf = "";
-  child.stdout.on("data", (chunk) => {
+  child.stdout?.on("data", (chunk: Buffer) => {
     buf += chunk.toString();
     while (true) {
       const nl = buf.indexOf("\n");
@@ -518,7 +455,7 @@ export function startListen(
       }
     }
   });
-  child.stderr.on("data", () => {
+  child.stderr?.on("data", () => {
     // listen logs to stderr; intentionally swallowed.
   });
   child.on("close", () => {

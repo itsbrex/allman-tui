@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
-import { spawnSync } from "node:child_process";
 import { render } from "ink";
 import { App } from "./app.tsx";
-import { findAccounts, getAllmanBin, getStorePath } from "./lib/allman.ts";
+import { findAccounts } from "./lib/allman.ts";
+import { resolveBin, resolveStore, spawnAllmanSync } from "./lib/cli.ts";
 
 type StatusEntry = {
   profileId: string;
@@ -17,11 +17,8 @@ type StatusEntry = {
  * Returns [] on any failure (missing binary, no accounts, parse error) — the
  * caller treats that as "run login".
  */
-function readStatuses(binPath: string, storePath: string): StatusEntry[] {
-  const result = spawnSync(binPath, ["--store", storePath, "status", "--json"], {
-    stdio: ["ignore", "pipe", "pipe"],
-    encoding: "utf8",
-  });
+function readStatuses(): StatusEntry[] {
+  const result = spawnAllmanSync(["status", "--json"]);
   if (result.status !== 0) return [];
   try {
     const parsed = JSON.parse(result.stdout.trim() || "[]");
@@ -31,7 +28,7 @@ function readStatuses(binPath: string, storePath: string): StatusEntry[] {
   }
 }
 
-function runLogin(binPath: string, storePath: string, reason: string): boolean {
+function runLogin(reason: string): boolean {
   // Hand stdio to the allman CLI so its native login flow (browser auth,
   // prompts, etc.) can run unmodified. Ink hasn't been mounted yet so the
   // terminal is in cooked mode and the CLI gets a clean tty.
@@ -42,9 +39,7 @@ function runLogin(binPath: string, storePath: string, reason: string): boolean {
       `  All data stays on your machine.\n\n` +
       `  (Press Ctrl-C to cancel.)\n\n`
   );
-  const result = spawnSync(binPath, ["--store", storePath, "login"], {
-    stdio: "inherit",
-  });
+  const result = spawnAllmanSync(["login"], { stdio: "inherit" });
   if (result.error) {
     process.stderr.write(`\nallman-tui: failed to start login: ${result.error.message}\n`);
     return false;
@@ -65,8 +60,8 @@ function main() {
   let storePath: string;
   let binPath: string;
   try {
-    storePath = getStorePath();
-    binPath = getAllmanBin();
+    storePath = resolveStore();
+    binPath = resolveBin();
   } catch (err) {
     process.stderr.write(
       `allman-tui: ${err instanceof Error ? err.message : String(err)}\n` +
@@ -86,9 +81,7 @@ function main() {
 
   let accounts = findAccounts(storePath);
   if (accounts.length === 0) {
-    if (
-      !runLogin(binPath, storePath, `No accounts in ${storePath} yet — running first-time login.`)
-    ) {
+    if (!runLogin(`No accounts in ${storePath} yet — running first-time login.`)) {
       process.exit(1);
     }
     accounts = findAccounts(storePath);
@@ -113,13 +106,13 @@ function main() {
   // flow runs before Ink takes over the terminal.
   if (account) {
     const current = account;
-    const statuses = readStatuses(binPath, storePath);
+    const statuses = readStatuses();
     const entry = statuses.find(
       (s) => s.profileId === current.profileId || s.slug === current.slug
     );
     if (entry && !entry.cookiesValid) {
       const who = entry.name || entry.slug || entry.profileId;
-      if (!runLogin(binPath, storePath, `Session for ${who} has expired — re-authenticating.`)) {
+      if (!runLogin(`Session for ${who} has expired — re-authenticating.`)) {
         process.exit(1);
       }
       // Re-read accounts so AUTH.json updates from the login flow are picked up.
