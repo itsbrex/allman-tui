@@ -33,14 +33,21 @@ jobs:
         run: |
           mkdir -p .bin
           if [ "$ALLMAN_CLI_VERSION" = "latest" ]; then
-            gh release download --repo tarkaai/allman-cli \
-              --pattern "allman-linux-${{ matrix.target.arch }}" \
-              --dir .bin
+            # `gh release download` without a tag skips prereleases; resolve the
+            # most recent release (prerelease-inclusive) via `gh release list`.
+            tag=$(gh release list --repo tarkaai/allman-cli --limit 1 \
+              --json tagName --jq '.[0].tagName')
+            if [ -z "$tag" ]; then
+              echo "no releases found on tarkaai/allman-cli" >&2
+              exit 1
+            fi
+            echo "resolved latest allman-cli tag: $tag"
           else
-            gh release download "$ALLMAN_CLI_VERSION" --repo tarkaai/allman-cli \
-              --pattern "allman-linux-${{ matrix.target.arch }}" \
-              --dir .bin
+            tag="$ALLMAN_CLI_VERSION"
           fi
+          gh release download "$tag" --repo tarkaai/allman-cli \
+            --pattern "allman-linux-${{ matrix.target.arch }}" \
+            --dir .bin
           mv ".bin/allman-linux-${{ matrix.target.arch }}" .bin/allman
           chmod +x .bin/allman
 
