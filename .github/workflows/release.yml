@@ -33,11 +33,13 @@ jobs:
         run: |
           mkdir -p .bin
           if [ "$ALLMAN_CLI_VERSION" = "latest" ]; then
-            # `gh release download` without a tag skips prereleases; resolve the
-            # most recent release (prerelease-inclusive) via `gh release list`.
-            tag=$(gh release list --repo tarkaai/allman-cli --limit 1 \
-              --json tagName --jq '.[0].tagName')
-            if [ -z "$tag" ]; then
+            # `gh release download` without a tag skips prereleases, and
+            # `gh release list` uses GraphQL which the default GITHUB_TOKEN
+            # can't run cross-repo. The REST releases endpoint works fine for
+            # public repos, and the first entry is the most recent release
+            # (including prereleases).
+            tag=$(gh api repos/tarkaai/allman-cli/releases --jq '.[0].tag_name')
+            if [ -z "$tag" ] || [ "$tag" = "null" ]; then
               echo "no releases found on tarkaai/allman-cli" >&2
               exit 1
             fi
