@@ -25,7 +25,7 @@ front-end over the standalone `allman` binary and its on-disk message store.
 
 ## Install
 
-### From GitHub Releases (Linux, x64 and arm64)
+### From GitHub Releases (Linux and macOS, x64 and arm64)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/tarkaai/allman-tui/main/install.sh | bash
