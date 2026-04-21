@@ -58,8 +58,12 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 echo "downloading $asset from $VERSION..."
-curl -fsSL "${auth_args[@]}" -o "$tmp/allman-tui" "$url"
-curl -fsSL "${auth_args[@]}" -o "$tmp/allman-tui.sha256" "$url.sha256" || true
+# GitHub release asset URLs redirect to objects.githubusercontent.com. curl
+# strips the Authorization header on cross-host redirect by default, which
+# causes 404s for private-repo installs. --location-trusted preserves the
+# header across the (github-owned) redirect chain.
+curl -fsSL --location-trusted "${auth_args[@]}" -o "$tmp/allman-tui" "$url"
+curl -fsSL --location-trusted "${auth_args[@]}" -o "$tmp/allman-tui.sha256" "$url.sha256" || true
 
 if [ -s "$tmp/allman-tui.sha256" ]; then
   expected="$(awk '{print $1}' "$tmp/allman-tui.sha256")"
