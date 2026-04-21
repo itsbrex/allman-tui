@@ -8,12 +8,23 @@
 #   curl -fsSL https://raw.githubusercontent.com/tarkaai/allman-tui/main/install.sh | bash
 #   curl -fsSL .../install.sh | VERSION=2026-04-20.1-alpha bash
 #   curl -fsSL .../install.sh | PREFIX=$HOME/.local bash
+#
+# While the repo is still private, pass a GitHub token so curl can
+# auth against release assets and raw.githubusercontent.com:
+#   GH_TOKEN=$(gh auth token) bash -c 'curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
+#     https://raw.githubusercontent.com/tarkaai/allman-tui/main/install.sh | bash'
 set -euo pipefail
 
 REPO="tarkaai/allman-tui"
 VERSION="${VERSION:-latest}"
 PREFIX="${PREFIX:-/usr/local}"
 BIN_DIR="$PREFIX/bin"
+
+# Optional bearer auth — needed while the repo is private; harmless once public.
+auth_args=()
+if [ -n "${GH_TOKEN:-}" ]; then
+  auth_args=(-H "Authorization: Bearer $GH_TOKEN")
+fi
 
 case "$(uname -s)" in
   Linux)  os="linux"  ;;
@@ -38,8 +49,8 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 echo "downloading $asset from $VERSION…"
-curl -fsSL -o "$tmp/allman-tui" "$url"
-curl -fsSL -o "$tmp/allman-tui.sha256" "$url.sha256" || true
+curl -fsSL "${auth_args[@]}" -o "$tmp/allman-tui" "$url"
+curl -fsSL "${auth_args[@]}" -o "$tmp/allman-tui.sha256" "$url.sha256" || true
 
 if [ -s "$tmp/allman-tui.sha256" ]; then
   expected="$(awk '{print $1}' "$tmp/allman-tui.sha256")"
