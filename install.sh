@@ -4,10 +4,14 @@
 # The allman-tui binary has the allman CLI embedded inside it — no separate
 # allman install required.
 #
+# Defaults to a user-writable prefix ($HOME/.local) so the install never
+# needs sudo, matching how rustup, bun, deno, uv, etc. ship. Override with
+# PREFIX=/usr/local (and accept the sudo prompt) for a system-wide install.
+#
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/tarkaai/allman-tui/main/install.sh | bash
 #   curl -fsSL .../install.sh | VERSION=2026-04-20.1-alpha bash
-#   curl -fsSL .../install.sh | PREFIX=$HOME/.local bash
+#   curl -fsSL .../install.sh | PREFIX=/usr/local bash        # system-wide
 #
 # While the repo is still private, pass a GitHub token so curl can
 # auth against release assets and raw.githubusercontent.com:
@@ -17,7 +21,7 @@ set -euo pipefail
 
 REPO="tarkaai/allman-tui"
 VERSION="${VERSION:-latest}"
-PREFIX="${PREFIX:-/usr/local}"
+PREFIX="${PREFIX:-$HOME/.local}"
 BIN_DIR="$PREFIX/bin"
 
 # Optional bearer auth — needed while the repo is private; harmless once public.
@@ -110,7 +114,8 @@ fi
 
 chmod +x "$tmp/allman-tui"
 
-if [ -w "$BIN_DIR" ] 2>/dev/null || { [ ! -e "$BIN_DIR" ] && mkdir -p "$BIN_DIR" 2>/dev/null; }; then
+mkdir -p "$BIN_DIR" 2>/dev/null || true
+if [ -w "$BIN_DIR" ]; then
   mv "$tmp/allman-tui" "$BIN_DIR/allman-tui"
 else
   echo "installing to $BIN_DIR requires sudo..."
@@ -119,4 +124,13 @@ else
 fi
 
 echo "installed: $BIN_DIR/allman-tui"
-command -v allman-tui >/dev/null || echo "note: $BIN_DIR is not on PATH — add it to your shell profile."
+if ! command -v allman-tui >/dev/null 2>&1; then
+  cat >&2 <<EOF
+note: $BIN_DIR is not on your PATH yet.
+  bash/zsh:
+    echo 'export PATH="$BIN_DIR:\$PATH"' >> ~/.zshrc
+    exec zsh
+  fish:
+    fish_add_path "$BIN_DIR"
+EOF
+fi
