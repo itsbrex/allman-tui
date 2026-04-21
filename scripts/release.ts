@@ -32,9 +32,11 @@ const REPO = "tarkaai/allman-tui";
 const CLI_REPO = "tarkaai/allman-cli";
 const BIN = "allman-tui";
 const TAG_REGEX = /^20\d{2}-\d{2}-\d{2}\.\d+(?:-(?:alpha|beta))?$/;
-const ARCHES = [
-  { arch: "x64", bunTarget: "bun-linux-x64" },
-  { arch: "arm64", bunTarget: "bun-linux-arm64" },
+const TARGETS = [
+  { os: "linux", arch: "x64", bunTarget: "bun-linux-x64" },
+  { os: "linux", arch: "arm64", bunTarget: "bun-linux-arm64" },
+  { os: "darwin", arch: "x64", bunTarget: "bun-darwin-x64" },
+  { os: "darwin", arch: "arm64", bunTarget: "bun-darwin-arm64" },
 ] as const;
 
 function die(msg: string): never {
@@ -78,8 +80,11 @@ async function sh(cmd: string): Promise<string> {
 }
 
 async function assertCleanTree() {
-  const status = await sh("git status --porcelain");
-  if (status) die(`working tree not clean:\n${status}`);
+  // Ignore untracked files — only fail when tracked files have uncommitted
+  // changes. Release machines often have untracked local tooling (.claude,
+  // .obsidian, etc.) that shouldn't block a release.
+  const status = await sh("git status --porcelain -uno");
+  if (status) die(`tracked files have uncommitted changes:\n${status}`);
 }
 
 async function assertOnMainPushed() {
@@ -110,10 +115,14 @@ async function resolveCliVersion(): Promise<string> {
   return latest;
 }
 
-async function downloadCli(version: string, arch: string): Promise<string> {
+async function downloadCli(
+  version: string,
+  os: string,
+  arch: string
+): Promise<string> {
   const tmpDir = join(ROOT, ".bin-release");
   mkdirSync(tmpDir, { recursive: true });
-  const assetName = `allman-linux-${arch}`;
+  const assetName = `allman-${os}-${arch}`;
   log(`downloading ${CLI_REPO} ${version} asset ${assetName}`);
   await $`gh release download ${version} --repo ${CLI_REPO} --pattern ${assetName} --dir ${tmpDir} --clobber`;
   const path = join(tmpDir, assetName);
@@ -160,15 +169,15 @@ async function main() {
   mkdirSync(DIST, { recursive: true });
   const assets: string[] = [];
   try {
-    for (const { arch, bunTarget } of ARCHES) {
-      const cliBinary = await downloadCli(cliVersion, arch);
-      const outfile = join(DIST, `${BIN}-linux-${arch}`);
+    for (const { os, arch, bunTarget } of TARGETS) {
+      const cliBinary = await downloadCli(cliVersion, os, arch);
+      const outfile = join(DIST, `${BIN}-${os}-${arch}`);
       log(`building ${outfile}`);
       await buildTui(cliBinary, bunTarget, outfile);
       const sumPath = `${outfile}.sha256`;
       const sum = sha256(outfile);
-      writeFileSync(sumPath, `${sum}  ${BIN}-linux-${arch}\n`);
-      log(`sha256 ${arch}: ${sum}`);
+      writeFileSync(sumPath, `${sum}  ${BIN}-${os}-${arch}\n`);
+      log(`sha256 ${os}-${arch}: ${sum}`);
       assets.push(outfile, sumPath);
     }
   } finally {

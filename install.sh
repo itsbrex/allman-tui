@@ -15,11 +15,11 @@ VERSION="${VERSION:-latest}"
 PREFIX="${PREFIX:-/usr/local}"
 BIN_DIR="$PREFIX/bin"
 
-os="$(uname -s)"
-if [ "$os" != "Linux" ]; then
-  echo "allman-tui releases are Linux-only (detected: $os)" >&2
-  exit 1
-fi
+case "$(uname -s)" in
+  Linux)  os="linux"  ;;
+  Darwin) os="darwin" ;;
+  *) echo "unsupported OS: $(uname -s) (allman-tui ships linux + darwin)" >&2; exit 1 ;;
+esac
 
 case "$(uname -m)" in
   x86_64|amd64) arch="x64" ;;
@@ -27,7 +27,7 @@ case "$(uname -m)" in
   *) echo "unsupported arch: $(uname -m)" >&2; exit 1 ;;
 esac
 
-asset="allman-tui-linux-$arch"
+asset="allman-tui-$os-$arch"
 if [ "$VERSION" = "latest" ]; then
   url="https://github.com/$REPO/releases/latest/download/$asset"
 else
@@ -42,7 +42,18 @@ curl -fsSL -o "$tmp/allman-tui" "$url"
 curl -fsSL -o "$tmp/allman-tui.sha256" "$url.sha256" || true
 
 if [ -s "$tmp/allman-tui.sha256" ]; then
-  (cd "$tmp" && sha256sum -c allman-tui.sha256 >/dev/null) && echo "checksum ok"
+  expected="$(awk '{print $1}' "$tmp/allman-tui.sha256")"
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual="$(sha256sum "$tmp/allman-tui" | awk '{print $1}')"
+  else
+    actual="$(shasum -a 256 "$tmp/allman-tui" | awk '{print $1}')"
+  fi
+  if [ "$expected" = "$actual" ]; then
+    echo "checksum ok"
+  else
+    echo "checksum mismatch: expected $expected got $actual" >&2
+    exit 1
+  fi
 fi
 
 chmod +x "$tmp/allman-tui"
