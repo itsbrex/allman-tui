@@ -3,6 +3,8 @@
 A re-imagined LinkedIn messenger inbox, in your terminal. A thin terminal
 front-end over the standalone `allman` binary and its on-disk message store.
 
+> **Companion repo:** [`tarkaai/allman-cli`](https://github.com/tarkaai/allman-cli) — the underlying CLI. The TUI bundles a pinned `allman` binary built from that repo; install just this one and you have both.
+
 ```
 ┌─ allman · your-account ──────────┬─────────────────────────────────────────────┐
 │ / search                     │ Jamie Rivera  @jamie-rivera                 │
