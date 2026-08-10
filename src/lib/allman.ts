@@ -476,3 +476,116 @@ export function startListen(
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Network: connections, enrichment, and connection requests
+// ---------------------------------------------------------------------------
+
+/**
+ * A stored connection record, as written by `allman connections` / `enrich`.
+ * Read straight off disk — enrichment fields are absent until enriched.
+ */
+export type StoredConnection = {
+  flagshipId: string;
+  publicIdentifier: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  headline?: string | null;
+  title?: string | null;
+  company?: string | null;
+  location?: string | null;
+  about?: string | null;
+  enrichedAt?: string | null;
+  enrichDepth?: "core" | "deep" | null;
+  /** "connections" from a real sweep; "enrich" for ad-hoc lookups. */
+  source?: "connections" | "enrich";
+};
+
+/**
+ * Read one connection record by slug or flagship id. Pure filesystem read —
+ * the slug symlink resolves to the same file, so either key works.
+ * Returns null when the person isn't in the store.
+ */
+export function loadConnection(accountDir: string, slugOrId: string): StoredConnection | null {
+  const dir = join(accountDir, "connections");
+  for (const name of [`${slugOrId}.json`, slugOrId]) {
+    const path = join(dir, name);
+    try {
+      if (!existsSync(path)) continue;
+      return JSON.parse(readFileSync(path, "utf8")) as StoredConnection;
+    } catch {
+      // fall through to the next candidate
+    }
+  }
+  return null;
+}
+
+/** A one-line "Title at Company — Location" summary, or null if unenriched. */
+export function formatConnectionSummary(c: StoredConnection | null): string | null {
+  if (!c) return null;
+  const role = [c.title, c.company].filter(Boolean).join(" at ");
+  const parts = [role || c.headline, c.location].filter(Boolean);
+  return parts.length > 0 ? parts.join(" — ") : null;
+}
+
+export type ConnectionsOptions = RunOptions & {
+  limit?: number;
+  /** Opt into the Sales Navigator backend (capped at 2500 results). */
+  salesnav?: boolean;
+};
+
+/** Pull the 1st-degree connection list via `allman connections`. */
+export async function pullConnections(opts: ConnectionsOptions = {}): Promise<string> {
+  const args = ["connections"];
+  if (opts.limit !== undefined) args.push("--limit", String(opts.limit));
+  if (opts.salesnav) args.push("--salesnav");
+  return runAllman(args, { ...opts, timeoutMs: 600_000 });
+}
+
+export type EnrichOptions = RunOptions & {
+  /** A slug/URL/URN to enrich one person; omit to enrich stored connections. */
+  target?: string;
+  limit?: number;
+  deep?: boolean;
+  force?: boolean;
+};
+
+/** Fill in profile fields via `allman enrich`. */
+export async function enrichConnections(opts: EnrichOptions = {}): Promise<string> {
+  const args = ["enrich"];
+  if (opts.target) args.push(opts.target);
+  if (opts.limit !== undefined) args.push("--limit", String(opts.limit));
+  if (opts.deep) args.push("--deep");
+  if (opts.force) args.push("--force");
+  return runAllman(args, { ...opts, timeoutMs: 600_000 });
+}
+
+export type ConnectOptions = RunOptions & {
+  /** Personalized note, max 300 chars (LinkedIn's cap). */
+  note?: string;
+  /** Preview without sending. */
+  dryRun?: boolean;
+};
+
+/**
+ * Send a connection request via `allman connect`.
+ *
+ * Outbound and irreversible, so this is a thin pass-through: the binary owns
+ * the duplicate guards, the 300-char cap, and the daily invitation quota. The
+ * TUI must not try to re-implement or bypass any of them.
+ */
+export async function sendConnectionRequest(
+  target: string,
+  opts: ConnectOptions = {}
+): Promise<unknown> {
+  const args = ["connect", target];
+  if (opts.note) args.push("--note", opts.note);
+  if (opts.dryRun) args.push("--dry-run");
+  args.push("--json");
+  const out = await runAllman(args, { ...opts, timeoutMs: 120_000 });
+  try {
+    return parseJsonOutput<unknown>(out);
+  } catch {
+    return { ok: true, raw: out };
+  }
+}

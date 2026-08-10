@@ -118,12 +118,36 @@ assets/
 | `Esc`           | leave any sub-mode |
 | `/`             | filter the conversation list |
 | `n`             | search contacts and start a new conversation |
-| `:`             | command palette (`sync`, `sync <slug>`, `reload`, `help`, `quit`) |
+| `:`             | command palette (`sync`, `connections`, `enrich`, `connect`, `reload`, `help`, `quit`) |
 | `r`             | sync everything from LinkedIn |
 | `R`             | reload from the local store (no network) |
 | `PgUp` / `PgDn` | scroll the message thread |
 | `?`             | toggle help |
 | `q` / `Ctrl+C`  | quit |
+
+### Network commands
+
+Run from the `:` palette. Each shells out to the `allman` binary, which owns
+rate limiting, the per-day/per-hour volume caps, duplicate detection, and the
+300-character note cap — the TUI never bypasses any of them.
+
+| Command | What it does |
+| ------- | ------------ |
+| `:connections` | Pull your 1st-degree connection list (flagship backend) |
+| `:connections 500` | ...capped at 500 |
+| `:connections salesnav` | Use Sales Navigator instead (richer, but capped at 2,500 results) |
+| `:enrich` | Fill in title, company, location and about for stored connections |
+| `:enrich 200` | ...for at most 200 profiles this run |
+| `:enrich deep` | ...also work history, education and skills |
+| `:enrich <slug>` | Enrich one person |
+| `:connect <slug>` | Send a connection request |
+| `:connect <slug> <note…>` | ...with a personalized note (max 300 chars) |
+
+Once a contact is enriched, the thread header shows their current role and
+location in place of their LinkedIn headline.
+
+> `:connect` sends a real, irreversible invitation. There is no undo, and
+> LinkedIn caps how many you can send — see the CLI's `RESPONSIBLE_USE.md`.
 
 ## Modes
 

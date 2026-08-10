@@ -80,6 +80,12 @@ function formatAttachment(a: Attachment): string {
 
 type Props = {
   conversation: Conversation | null;
+  /**
+   * One-line enrichment summary ("Title at Company — Location") from the
+   * connections store, when the contact has been enriched. Falls back to the
+   * LinkedIn headline when absent.
+   */
+  profileSummary?: string | null;
   messages: Message[];
   width: number;
   height: number;
@@ -145,6 +151,7 @@ type FlatLine =
 
 export function Thread({
   conversation,
+  profileSummary,
   messages,
   width,
   height,
@@ -298,7 +305,9 @@ export function Thread({
           ) : null}
         </Box>
         <Box>
-          <Text dimColor>{truncate(conversation.headline || "", Math.max(0, width - 4))}</Text>
+          <Text dimColor>
+            {truncate(profileSummary || conversation.headline || "", Math.max(0, width - 4))}
+          </Text>
         </Box>
       </Box>
 

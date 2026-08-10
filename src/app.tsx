@@ -13,14 +13,19 @@ import { TemplateManager } from "./components/TemplateManager.tsx";
 import { TemplatePicker } from "./components/TemplatePicker.tsx";
 import { Thread } from "./components/Thread.tsx";
 import {
+  enrichConnections,
+  formatConnectionSummary,
   type ListenHandle,
+  loadConnection,
   loadConversations,
   loadLastMessage,
   loadMessages,
+  pullConnections,
   reactToMessage,
   readAccountAuth,
   resolveSlugToConvId,
   type SyncEvent,
+  sendConnectionRequest,
   sendMessage,
   startListen,
   syncConversation,
@@ -891,6 +896,60 @@ export function App({ account }: Props) {
         setMode("templateManage");
         return;
       }
+      // ----- Network commands -----
+      // These shell out to the binary, which owns rate limits, volume quotas
+      // and duplicate guards. Never re-implement those here.
+      if (cmd === "connections" || cmd.startsWith("connections ")) {
+        const rest = cmd.slice("connections".length).trim();
+        const salesnav = /\bsalesnav\b/.test(rest);
+        const limit = /(\d+)/.exec(rest)?.[1];
+        showToast("pulling connections…");
+        void pullConnections({ limit: limit ? parseInt(limit, 10) : undefined, salesnav })
+          .then(() => {
+            reload();
+            showToast("connections updated");
+          })
+          .catch((e: unknown) => showToast(`connections failed: ${String(e)}`));
+        return;
+      }
+      if (cmd === "enrich" || cmd.startsWith("enrich ")) {
+        const parts = cmd.split(/\s+/).slice(1);
+        const deep = parts.includes("deep");
+        const rest = parts.filter((p) => p !== "deep");
+        const numeric = rest.find((p) => /^\d+$/.test(p));
+        const target = rest.find((p) => !/^\d+$/.test(p));
+        showToast(target ? `enriching ${target}…` : "enriching connections…");
+        void enrichConnections({
+          target,
+          deep,
+          limit: numeric ? parseInt(numeric, 10) : undefined,
+        })
+          .then(() => {
+            reload();
+            showToast("enrichment complete");
+          })
+          .catch((e: unknown) => showToast(`enrich failed: ${String(e)}`));
+        return;
+      }
+      if (cmd.startsWith("connect ")) {
+        // :connect <slug> [note...]  — note is everything after the slug.
+        const rest = cmd.slice("connect ".length).trim();
+        const [target, ...noteWords] = rest.split(/\s+/);
+        if (!target) {
+          showToast("usage: :connect <slug> [note]");
+          return;
+        }
+        const note = noteWords.join(" ").trim() || undefined;
+        if (note && note.length > 300) {
+          showToast(`note is ${note.length} chars — LinkedIn caps notes at 300`);
+          return;
+        }
+        showToast(`sending request to ${target}…`);
+        void sendConnectionRequest(target, { note })
+          .then(() => showToast(`connection request sent to ${target}`))
+          .catch((e: unknown) => showToast(`connect failed: ${String(e)}`));
+        return;
+      }
       showToast(`unknown command: :${cmd}`);
     },
     [reload, showToast, doSyncInbox, doSyncOne, exit, selectedConvId, conversations]
@@ -906,6 +965,15 @@ export function App({ account }: Props) {
   const bodyHeight = Math.max(8, rows - statusHeight - composerHeight - dividerHeight - 1);
 
   const conv = conversations.find((c) => c.convId === selectedConvId) ?? null;
+
+  // Enrichment summary for the open thread, read straight from the
+  // connections store. Cheap (one file read) and re-evaluated when the
+  // selection changes or a `:enrich` run triggers a reload.
+  const profileSummary = useMemo(() => {
+    const key = conv?.slug ?? conv?.profileId;
+    if (!key) return null;
+    return formatConnectionSummary(loadConnection(account.dir, key));
+  }, [conv?.slug, conv?.profileId, account.dir]);
 
   // Modal: full-screen overlay for new conversation and help.
   if (mode === "help") {
@@ -1033,6 +1101,7 @@ export function App({ account }: Props) {
         </Box>
         <Thread
           conversation={conv}
+          profileSummary={profileSummary}
           messages={messages}
           width={threadWidth}
           height={bodyHeight}
