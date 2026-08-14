@@ -16,6 +16,8 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test tests/unit/",
     "test:watch": "bun test --watch tests/unit/",
+    "link": "bun scripts/dev-link.ts",
+    "unlink": "bun scripts/dev-link.ts --remove",
     "release": "bun scripts/release.ts",
     "plans": "bun scripts/plans.mjs",
     "prepare": "husky"

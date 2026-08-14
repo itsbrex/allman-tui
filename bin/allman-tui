@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Dev shim for `allman-tui`.
+#
+# Runs the TUI straight from this checkout's TypeScript source, so whatever is
+# in the working tree is what `allman-tui` on PATH does — no `bun run build`,
+# no embedded-binary extraction. `bun run link` symlinks ~/.local/bin/allman-tui
+# at this file; `bun run unlink` removes it.
+#
+# It also points the TUI at the *dev* CLI when one is checked out beside this
+# repo. Without that, a dev TUI would silently drive whatever released `allman`
+# happens to be on PATH, and a two-repo change would look like it only half
+# landed. Explicit ALLMAN_BIN always wins; if no sibling checkout exists we
+# leave resolution alone and the normal PATH lookup applies.
+
+set -euo pipefail
+
+# Resolve through symlinks so ROOT is the repo, not ~/.local/bin.
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+ROOT="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
+
+if [ -z "${ALLMAN_BIN:-}" ]; then
+  CLI_REPO="${ALLMAN_CLI_REPO:-$(dirname "$ROOT")/allman-cli}"
+  if [ -x "$CLI_REPO/bin/allman" ]; then
+    export ALLMAN_BIN="$CLI_REPO/bin/allman"
+  fi
+fi
+
+exec bun "$ROOT/src/index.tsx" "$@"

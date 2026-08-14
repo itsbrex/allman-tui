@@ -91,6 +91,28 @@ bun run lint         # biome check src tests
 bun run build        # embeds `allman`, compiles → dist/allman-tui
 ```
 
+### Running the local dev version
+
+`bun run link` symlinks `~/.local/bin/allman-tui` at `bin/allman-tui`, a shim that execs
+`bun src/index.tsx`. So `allman-tui` on PATH is the working tree — no rebuild between an edit and
+the next run.
+
+The shim also sets `ALLMAN_BIN` to a sibling `allman-cli` checkout's `bin/allman` shim when one
+exists, so **the dev TUI drives the dev CLI** rather than a released binary. Override the checkout
+location with `ALLMAN_CLI_REPO`; an explicit `ALLMAN_BIN` always wins.
+
+```bash
+bun run link           # ~/.local/bin/allman-tui -> ./bin/allman-tui
+bun run link --force   # ...moving an installed allman-tui aside first
+bun run unlink         # remove it, restore whatever was displaced
+```
+
+Run `bun run link` in `allman-cli` too, so both commands come from source. Neither release install
+is destroyed: a displaced binary is kept at `<name>.pre-dev-link` and restored by `unlink`.
+
+Note the TUI resolves the CLI **as a binary**, never by importing its source. That boundary is
+deliberate — the shim satisfies it the same way a release build does.
+
 ### Pre-commit
 
 husky + lint-staged run on every commit: biome over staged `src`/`tests` files, then
