@@ -1,6 +1,6 @@
-import { describe, it, expect } from "bun:test";
-import React from "react";
+import { describe, expect, it } from "bun:test";
 import { render } from "ink-testing-library";
+import React from "react";
 import { StatusBar } from "../../src/components/StatusBar.tsx";
 
 const baseProps = {
@@ -44,9 +44,7 @@ describe("StatusBar", () => {
   });
 
   it("shows 'stale' when connected but heartbeat is old", () => {
-    const { lastFrame } = render(
-      <StatusBar {...baseProps} lastBeatAt={Date.now() - 120_000} />
-    );
+    const { lastFrame } = render(<StatusBar {...baseProps} lastBeatAt={Date.now() - 120_000} />);
     expect(lastFrame()).toContain("stale");
   });
 
@@ -86,9 +84,7 @@ describe("StatusBar", () => {
   });
 
   it("shows toast message", () => {
-    const { lastFrame } = render(
-      <StatusBar {...baseProps} toast="message sent!" />
-    );
+    const { lastFrame } = render(<StatusBar {...baseProps} toast="message sent!" />);
     expect(lastFrame()).toContain("message sent!");
   });
 

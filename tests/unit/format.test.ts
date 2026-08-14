@@ -1,5 +1,12 @@
-import { describe, it, expect } from "bun:test";
-import { relativeTime, clockTime, dayLabel, truncate, colorFor, firstLine } from "../../src/lib/format.ts";
+import { describe, expect, it } from "bun:test";
+import {
+  clockTime,
+  colorFor,
+  dayLabel,
+  firstLine,
+  relativeTime,
+  truncate,
+} from "../../src/lib/format.ts";
 
 describe("relativeTime", () => {
   it("returns empty string for null/undefined", () => {
@@ -104,7 +111,12 @@ describe("colorFor", () => {
 
   it("returns different colors for different keys", () => {
     // Not guaranteed for all pairs, but these specific strings hash differently
-    const colors = new Set([colorFor("alice"), colorFor("bob"), colorFor("charlie"), colorFor("dave")]);
+    const colors = new Set([
+      colorFor("alice"),
+      colorFor("bob"),
+      colorFor("charlie"),
+      colorFor("dave"),
+    ]);
     expect(colors.size).toBeGreaterThan(1);
   });
 });

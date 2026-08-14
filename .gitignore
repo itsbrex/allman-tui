@@ -6,5 +6,9 @@ dist/
 # Local allman store (per-user message data, has its own git history)
 .allman/
 
-# Claude Code local settings
-.claude/
+# Claude Code local settings (per-user; the shared config is committed)
+.claude/settings.local.json
+.claude/feedback/
+
+# Release scratch space (scripts/release.ts)
+.bin-release/

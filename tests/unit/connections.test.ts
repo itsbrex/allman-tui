@@ -8,10 +8,11 @@
  *
  * Real temp directories, no network. All ids/slugs are synthetic.
  */
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
 import { formatConnectionSummary, loadConnection } from "../../src/lib/allman.ts";
 
@@ -38,7 +39,10 @@ describe("loadConnection", () => {
   });
 
   test("reads the same record through its slug symlink", () => {
-    writeConnection({ flagshipId: ID, publicIdentifier: "syn-user", title: "Engineer" }, "syn-user");
+    writeConnection(
+      { flagshipId: ID, publicIdentifier: "syn-user", title: "Engineer" },
+      "syn-user"
+    );
     expect(loadConnection(accountDir, "syn-user")?.flagshipId).toBe(ID);
   });
 

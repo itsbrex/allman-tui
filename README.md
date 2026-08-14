@@ -190,7 +190,11 @@ Issues and pull requests welcome. Before sending a PR:
 ```bash
 bun test
 bun run lint
+bun run typecheck
 ```
+
+`bun install` installs a husky pre-commit hook that runs all three (biome only over staged files),
+so a normal `git commit` already covers this.
 
 ## License
 

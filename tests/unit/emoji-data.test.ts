@@ -1,5 +1,5 @@
-import { describe, it, expect } from "bun:test";
-import { searchEmoji, LINKEDIN_DEFAULTS, UNIQUE_EMOJI } from "../../src/lib/emoji-data.ts";
+import { describe, expect, it } from "bun:test";
+import { LINKEDIN_DEFAULTS, searchEmoji, UNIQUE_EMOJI } from "../../src/lib/emoji-data.ts";
 
 describe("emoji-data", () => {
   it("has 6 LinkedIn defaults", () => {

@@ -1,7 +1,7 @@
-import { describe, it, expect } from "bun:test";
-import React from "react";
+import { describe, expect, it } from "bun:test";
 import { render } from "ink-testing-library";
-import { ReactionPicker, REACTION_PALETTE } from "../../src/components/ReactionPicker.tsx";
+import React from "react";
+import { REACTION_PALETTE, ReactionPicker } from "../../src/components/ReactionPicker.tsx";
 import type { Message } from "../../src/lib/types.ts";
 
 const makeMessage = (overrides: Partial<Message> = {}): Message => ({
@@ -38,13 +38,7 @@ describe("ReactionPicker", () => {
 
   it("renders the default emoji row with numbers", () => {
     const { lastFrame } = render(
-      <ReactionPicker
-        message={makeMessage()}
-        width={80}
-        height={8}
-        onPick={noop}
-        onCancel={noop}
-      />
+      <ReactionPicker message={makeMessage()} width={80} height={8} onPick={noop} onCancel={noop} />
     );
     const frame = lastFrame() ?? "";
     expect(frame).toContain("1");
@@ -55,26 +49,14 @@ describe("ReactionPicker", () => {
 
   it("shows search prompt", () => {
     const { lastFrame } = render(
-      <ReactionPicker
-        message={makeMessage()}
-        width={80}
-        height={8}
-        onPick={noop}
-        onCancel={noop}
-      />
+      <ReactionPicker message={makeMessage()} width={80} height={8} onPick={noop} onCancel={noop} />
     );
     expect(lastFrame()).toContain("type to search");
   });
 
   it("renders emoji grid", () => {
     const { lastFrame } = render(
-      <ReactionPicker
-        message={makeMessage()}
-        width={80}
-        height={8}
-        onPick={noop}
-        onCancel={noop}
-      />
+      <ReactionPicker message={makeMessage()} width={80} height={8} onPick={noop} onCancel={noop} />
     );
     // Grid should show some emojis beyond the defaults
     const frame = lastFrame() ?? "";
@@ -88,7 +70,9 @@ describe("ReactionPicker", () => {
         message={makeMessage()}
         width={80}
         height={8}
-        onPick={(emoji, unreact) => { picked = { emoji, unreact }; }}
+        onPick={(emoji, unreact) => {
+          picked = { emoji, unreact };
+        }}
         onCancel={noop}
       />
     );
@@ -105,7 +89,9 @@ describe("ReactionPicker", () => {
         })}
         width={80}
         height={8}
-        onPick={(emoji, unreact) => { picked = { emoji, unreact }; }}
+        onPick={(emoji, unreact) => {
+          picked = { emoji, unreact };
+        }}
         onCancel={noop}
       />
     );
@@ -115,13 +101,7 @@ describe("ReactionPicker", () => {
 
   it("renders without crashing at small dimensions", () => {
     const { lastFrame } = render(
-      <ReactionPicker
-        message={makeMessage()}
-        width={30}
-        height={4}
-        onPick={noop}
-        onCancel={noop}
-      />
+      <ReactionPicker message={makeMessage()} width={30} height={4} onPick={noop} onCancel={noop} />
     );
     expect(lastFrame()).toContain("👍");
   });
