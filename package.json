@@ -14,6 +14,8 @@
     "lint:fix": "biome check --write src",
     "format": "biome format --write src",
     "test": "bun test tests/unit/",
+    "link": "bun scripts/dev-link.ts",
+    "unlink": "bun scripts/dev-link.ts --remove",
     "release": "bun scripts/release.ts"
   },
   "dependencies": {

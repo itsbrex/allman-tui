@@ -43,6 +43,33 @@ bun install
 bun run dev
 ```
 
+### Local development against a local CLI
+
+`bun run link` puts this checkout on your PATH: it symlinks `~/.local/bin/allman-tui` at
+`bin/allman-tui`, a shim that execs `bun src/index.tsx`. Typing `allman-tui` then runs the working
+tree — no `bun run build` between an edit and the next run.
+
+```bash
+bun run link           # ~/.local/bin/allman-tui -> ./bin/allman-tui
+bun run link --force   # ...moving an installed allman-tui aside first
+bun run unlink         # remove it, restore whatever was displaced
+```
+
+The shim also points `ALLMAN_BIN` at a sibling [`allman-cli`](https://github.com/tarkaai/allman-cli)
+checkout's own dev shim (`../allman-cli/bin/allman`) when it finds one, so the dev TUI drives the
+dev CLI instead of a released binary. Run `bun run link` in that repo too and both halves come from
+source:
+
+```
+~/github/
+├── allman-cli/     bun run link  →  ~/.local/bin/allman
+└── allman-tui/     bun run link  →  ~/.local/bin/allman-tui
+```
+
+Set `ALLMAN_CLI_REPO` if your checkout lives somewhere else. An explicit `ALLMAN_BIN` always wins,
+and a release binary displaced by `--force` is kept at `<name>.pre-dev-link` and restored by
+`bun run unlink`.
+
 ### Bundled `allman` binary
 
 `bun run build` produces a single self-contained `dist/allman-tui` executable
