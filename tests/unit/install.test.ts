@@ -16,9 +16,12 @@ afterEach(() => {
 function runInstaller(ghToken?: string) {
   tempDir = mkdtempSync(join(tmpdir(), "allman-install-"));
   const fakeBin = join(tempDir, "fake-bin");
-  const home = join(tempDir, "home");
+  // PREFIX is what keeps this hermetic; HOME is deliberately left alone. The
+  // installer only reads it to default PREFIX, and overriding it breaks the
+  // `python3` it shells out to on any machine where python3 is a version-manager
+  // shim (asdf, mise, pyenv) that resolves its interpreter through $HOME.
+  const prefix = join(tempDir, "prefix");
   mkdirSync(fakeBin);
-  mkdirSync(home);
 
   const os = process.platform === "darwin" ? "darwin" : "linux";
   const asset = `allman-tui-${os}-${process.arch === "arm64" ? "arm64" : "x64"}`;
@@ -63,10 +66,8 @@ esac
   );
   chmodSync(fakeCurl, 0o755);
 
-  const prefix = join(home, ".local");
   const env = {
     ...process.env,
-    HOME: home,
     PATH: `${fakeBin}:${process.env.PATH}`,
     PREFIX: prefix,
     VERSION: "latest",
