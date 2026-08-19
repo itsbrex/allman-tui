@@ -180,17 +180,21 @@ location in place of their LinkedIn headline.
 
 `allman-tui` is modal — what your keys mean depends on which mode you're in.
 The current mode is shown on the right of the status bar (`[browse]`,
-`[search]`, `[compose]`, `[new]`, `[command]`, `[help]`). The hint line below
-it always reflects the keys available in the current mode.
+`[compose]`, `[templatePick]`, …). The hint line below it always reflects the
+keys available in the current mode.
 
-| Mode       | What you can do |
-| ---------- | --------------- |
-| `browse`   | navigate conversations, jump into other modes |
-| `search`   | filter the sidebar by name / slug / headline |
-| `compose`  | type a reply, `↵` to send, `Esc` to cancel |
-| `new`      | search contacts via `allman search`, pick one to open or draft |
-| `command`  | type a command palette command |
-| `help`     | full keybinding reference |
+| Mode             | What you can do |
+| ---------------- | --------------- |
+| `browse`         | navigate conversations, jump into other modes |
+| `search`         | filter the sidebar by name / slug / headline |
+| `compose`        | type a reply, `↵` to send, `Esc` to cancel |
+| `new`            | search contacts via `allman search`, pick one to open or draft |
+| `command`        | type a command palette command (`sync`, `connections`, `enrich`, `connect`, …) |
+| `help`           | full keybinding reference |
+| `templatePick`   | insert a saved quick-reply template into the composer |
+| `templateManage` | create, edit, and delete templates |
+| `messageSelect`  | move a cursor through the thread to pick one message |
+| `reactionPick`   | choose an emoji reaction for the selected message |
 
 ## Environment
 
