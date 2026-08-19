@@ -11,6 +11,7 @@
     "start": "bun run src/index.tsx",
     "build": "bun run scripts/build.ts",
     "lint": "biome check src",
+    "typecheck": "tsc --noEmit",
     "lint:fix": "biome check --write src",
     "format": "biome format --write src",
     "test": "bun test tests/unit/",
